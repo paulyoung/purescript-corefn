@@ -16,7 +16,6 @@ testFromJSON :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
 testFromJSON = do
 
   -- Expect Left when no module name is missing
-  -- either logShowSuccess expectLeft (moduleFromJSON "{}")
   test (moduleFromJSON "{}") logShowSuccess expectLeft
 
   -- Expect Right when module name is present
