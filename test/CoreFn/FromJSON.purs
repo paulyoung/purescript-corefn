@@ -38,6 +38,8 @@ testFromJSON = do
   greenCheck = green <> check <> reset
 
   logSuccess x = log $ "  " <> greenCheck <> " " <> x
+
+  logShowSuccess :: forall a. (Show a) => a -> Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
   logShowSuccess x = logSuccess $ show x
 
   failure = throwException <<< error
