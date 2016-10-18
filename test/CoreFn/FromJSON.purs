@@ -22,7 +22,7 @@ testFromJSON = do
   -- Throw an exception if the name doesn't match
   test (moduleFromJSON "{ \"Main\": null }") expectRight \(Module x) ->
     if x.moduleName == ModuleName "Main"
-    then logSuccess $ show x.moduleName
+    then logShowSuccess x.moduleName
     else failure "expected module name to be \"Main\""
 
   where
