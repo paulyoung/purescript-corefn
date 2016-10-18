@@ -16,13 +16,13 @@ testFromJSON :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
 testFromJSON = do
 
   -- Expect Left when no module name is missing
-  test (moduleFromJSON "{}") logShowSuccess expectLeft
+  test (moduleFromJSON "{}") logSuccessShow expectLeft
 
   -- Expect Right when module name is present
   -- Throw an exception if the name doesn't match
   test (moduleFromJSON "{ \"Main\": null }") expectRight \(Module x) ->
     if x.moduleName == ModuleName "Main"
-    then logShowSuccess x.moduleName
+    then logSuccessShow x.moduleName
     else failure "expected module name to be \"Main\""
 
   where
@@ -39,7 +39,7 @@ testFromJSON = do
 
   logSuccess x = log $ "  " <> greenCheck <> " " <> x
 
-  logShowSuccess :: forall a. (Show a) => a -> Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
-  logShowSuccess x = logSuccess $ show x
+  logSuccessShow :: forall a. (Show a) => a -> Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
+  logSuccessShow x = logSuccess $ show x
 
   failure = throwException <<< error
