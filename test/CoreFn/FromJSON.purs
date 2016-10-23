@@ -10,27 +10,37 @@ import CoreFn.FromJSON (moduleFromJSON)
 import CoreFn.Module (Module(..))
 import CoreFn.ModuleName (ModuleName(..))
 import Data.Either (either)
+import Data.Foreign (ForeignError(..))
 
 -- TODO: use purescript-test-unit when compatible with 0.10
 testFromJSON :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
 testFromJSON = do
 
-  -- Expect Left when no module name is missing
-  test (moduleFromJSON "{}") logSuccessShow expectLeft
+  expectLeft (moduleFromJSON "{}") \(x) ->
+    assertEqual x (JSONError "Module name not found")
 
-  -- Expect Right when module name is present
-  -- Throw an exception if the name doesn't match
-  test (moduleFromJSON "{ \"Main\": null }") expectRight \(Module x) ->
-    if x.moduleName == ModuleName "Main"
-    then logSuccessShow x.moduleName
-    else failure "expected module name to be \"Main\""
+  expectRight (moduleFromJSON "{ \"Main\": { \"imports\": [] } }") \(Module x) ->
+    assertEqual x.moduleName (ModuleName "Main")
 
   where
 
-  test x y z = either y z x
+  assertEqual :: forall a. (Eq a, Show a) => a -> a -> Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
+  assertEqual actual expected =
+    if actual == expected
+    then logSuccessShow actual
+    else fail (show expected) (show actual)
 
-  expectLeft x = failure $ "expected Left, got: " <> show x
-  expectRight x = failure $ "expected Right, got: " <> show x
+  fail expected actual = failure $ "\n"
+    <> "  expected:\n"
+    <> "    " <> expected <> "\n"
+    <> "  actual:\n"
+    <> "    " <> actual <> "\n"
+
+  expectedLeft x = fail "Left" $ show x
+  expectedRight x = fail "Right" $ show x
+
+  expectLeft x f = either f expectedLeft x
+  expectRight x g = either expectedRight g x
 
   green = "\x1b[32m"
   reset = "\x1b[0m"
