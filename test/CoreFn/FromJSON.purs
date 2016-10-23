@@ -22,6 +22,9 @@ testFromJSON = do
   expectRight (moduleFromJSON "{ \"Main\": { \"imports\": [] } }") \(Module x) ->
     assertEqual x.moduleName (ModuleName "Main")
 
+  expectRight (moduleFromJSON "{ \"Main\": { \"imports\": [ \"Prim\" ] } }") \(Module x) ->
+    assertEqual x.moduleImports [(ModuleName "Prim")]
+
   where
 
   assertEqual :: forall a. (Eq a, Show a) => a -> a -> Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
