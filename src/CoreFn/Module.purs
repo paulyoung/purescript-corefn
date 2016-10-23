@@ -5,22 +5,34 @@ import Control.Error.Util (note)
 import CoreFn.ModuleName (ModuleName(..))
 import Data.Either (Either)
 import Data.Foreign (Foreign, ForeignError(..))
-import Data.Foreign.Class (class IsForeign)
+import Data.Foreign.Class (readProp, class IsForeign)
+import Data.Foreign.Index (prop)
 import Data.Foreign.Keys (keys)
 import Data.Generic (class Generic, gCompare, gEq, gShow)
-import Prelude ((<$>), (>>=), (<<<), class Eq, class Ord, class Show)
+import Prelude ((#), ($), (<$>), (>>=), (<<<), bind, flip, pure, class Eq, class Ord, class Show)
 
 -- |
 -- The CoreFn module representation
 --
 data Module = Module
-  { moduleName :: ModuleName
+  { moduleImports :: Array ModuleName
+  , moduleName :: ModuleName
   }
 
 derive instance genericModule :: Generic Module
 
 instance isForeignModule :: IsForeign Module where
-  read x = Module <<< { moduleName: _ } <<< ModuleName <$> firstKey x
+  read x = do
+    let key = firstKey x
+    value <- key >>= (flip prop) x
+    moduleImports <- value # readProp "imports"
+    moduleName <- ModuleName <$> key
+
+    pure $ Module
+      { moduleImports: moduleImports
+      , moduleName: moduleName
+      }
+
     where
 
     head :: forall a. Array a -> Either ForeignError a
