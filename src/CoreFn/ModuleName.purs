@@ -17,7 +17,7 @@ instance isForeignModuleName :: IsForeign ModuleName where
 instance showModuleName :: Show ModuleName where
   show = gShow
 
-instance eqPosition :: Eq ModuleName where
+instance eqModuleName :: Eq ModuleName where
   eq = gEq
 
 instance ordModuleName :: Ord ModuleName where

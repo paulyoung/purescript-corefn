@@ -44,7 +44,7 @@ instance isForeignModule :: IsForeign Module where
 instance showModule :: Show Module where
   show = gShow
 
-instance eqPosition :: Eq Module where
+instance eqModule :: Eq Module where
   eq = gEq
 
 instance ordModule :: Ord Module where
