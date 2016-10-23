@@ -29,8 +29,8 @@ testFromJSON = do
 
   test x y z = either y z x
 
-  expectLeft _ = failure "expected Left"
-  expectRight _ = failure "expected Right"
+  expectLeft x = failure $ "expected Left, got: " <> show x
+  expectRight x = failure $ "expected Right, got: " <> show x
 
   green = "\x1b[32m"
   reset = "\x1b[0m"
