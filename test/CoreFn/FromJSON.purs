@@ -16,13 +16,29 @@ import Data.Foreign (ForeignError(..))
 testFromJSON :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
 testFromJSON = do
 
-  expectLeft (moduleFromJSON "{}") \(x) ->
+  expectLeft (moduleFromJSON """
+    {}
+  """) \(x) ->
     assertEqual x (JSONError "Module name not found")
 
-  expectRight (moduleFromJSON "{ \"Main\": { \"imports\": [] } }") \(Module x) ->
+  expectRight (moduleFromJSON """
+    {
+      "Main": {
+        "imports": []
+      }
+    }
+  """) \(Module x) ->
     assertEqual x.moduleName (ModuleName "Main")
 
-  expectRight (moduleFromJSON "{ \"Main\": { \"imports\": [ \"Prim\" ] } }") \(Module x) ->
+  expectRight (moduleFromJSON """
+    {
+      "Main": {
+        "imports": [
+          "Prim"
+        ]
+      }
+    }
+  """) \(Module x) ->
     assertEqual x.moduleImports [(ModuleName "Prim")]
 
   where
