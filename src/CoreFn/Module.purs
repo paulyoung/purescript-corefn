@@ -8,8 +8,8 @@ import Data.Foreign (Foreign, ForeignError(..))
 import Data.Foreign.Class (readProp, class IsForeign)
 import Data.Foreign.Index (prop)
 import Data.Foreign.Keys (keys)
-import Data.Generic (class Generic, gCompare, gEq, gShow)
 import Prelude ((#), ($), (<$>), (>>=), (<<<), bind, flip, pure, class Eq, class Ord, class Show)
+import Data.Generic (gCompare, gEq, gShow, class Generic)
 
 -- |
 -- The CoreFn module representation
