@@ -1,3 +1,6 @@
+-- |
+-- Consume the core functional representation in JSON format
+--
 module CoreFn.FromJSON
   ( moduleFromJSON
   ) where

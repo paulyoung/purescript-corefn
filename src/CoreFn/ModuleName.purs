@@ -2,10 +2,10 @@ module CoreFn.ModuleName
   ( ModuleName(..)
   ) where
 
+import Prelude
 import Data.Foreign (readString)
 import Data.Foreign.Class (class IsForeign)
 import Data.Generic (class Generic, gCompare, gEq, gShow)
-import Prelude ((<$>), class Eq, class Ord, class Show)
 
 newtype ModuleName = ModuleName String
 

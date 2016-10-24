@@ -7,6 +7,7 @@ import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION, throwException, error)
 import CoreFn.FromJSON (moduleFromJSON)
+import CoreFn.Comment (Comment(..))
 import CoreFn.Module (Module(..))
 import CoreFn.ModuleName (ModuleName(..))
 import Data.Either (either)
@@ -16,22 +17,62 @@ import Data.Foreign (ForeignError(..))
 testFromJSON :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
 testFromJSON = do
 
-  expectLeft (moduleFromJSON "{}") \(x) ->
+  expectLeft (moduleFromJSON """
+    {}
+  """) \(x) ->
     assertEqual x (JSONError "Module name not found")
 
-  expectRight (moduleFromJSON "{ \"Main\": { \"imports\": [] } }") \(Module x) ->
+  expectRight (moduleFromJSON """
+    {
+      "Main": {
+        "imports": [],
+        "comments": []
+      }
+    }
+  """) \(Module x) ->
     assertEqual x.moduleName (ModuleName "Main")
 
-  expectRight (moduleFromJSON "{ \"Main\": { \"imports\": [ \"Prim\" ] } }") \(Module x) ->
-    assertEqual x.moduleImports [(ModuleName "Prim")]
+  expectRight (moduleFromJSON """
+    {
+      "Main": {
+        "imports": [],
+        "comments": [
+          {
+            "BlockComment": "A block comment"
+          },
+          {
+            "LineComment": "A line comment"
+          }
+        ]
+      }
+    }
+  """) \(Module x) ->
+    assertEqual x.moduleComments
+    [ (BlockComment "A block comment")
+    , (LineComment "A line comment")
+    ]
+
+  expectRight (moduleFromJSON """
+    {
+      "Main": {
+        "imports": [
+          "Prim"
+        ],
+        "comments": []
+      }
+    }
+  """) \(Module x) ->
+    assertEqual x.moduleImports
+      [ (ModuleName "Prim")
+      ]
 
   where
 
   assertEqual :: forall a. (Eq a, Show a) => a -> a -> Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
   assertEqual actual expected =
     if actual == expected
-    then logSuccessShow actual
-    else fail (show expected) (show actual)
+      then logSuccessShow actual
+      else fail (show expected) (show actual)
 
   fail expected actual = failure $ "\n"
     <> "  expected:\n"
