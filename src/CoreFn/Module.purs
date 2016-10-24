@@ -1,8 +1,8 @@
 module CoreFn.Module where
 
-import Data.Array as Array
 import Control.Error.Util (note)
 import CoreFn.ModuleName (ModuleName(..))
+import Data.Array as Array
 import Data.Either (Either)
 import Data.Foreign (Foreign, ForeignError(..))
 import Data.Foreign.Class (readProp, class IsForeign)
