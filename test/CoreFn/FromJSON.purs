@@ -39,7 +39,9 @@ testFromJSON = do
       }
     }
   """) \(Module x) ->
-    assertEqual x.moduleImports [(ModuleName "Prim")]
+    assertEqual x.moduleImports
+      [ (ModuleName "Prim")
+      ]
 
   where
 
