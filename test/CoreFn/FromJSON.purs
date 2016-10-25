@@ -7,7 +7,7 @@ import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION, throwException, error)
 import CoreFn.FromJSON (moduleFromJSON)
-import CoreFn.Comment (Comment(..))
+import CoreFn.Ident (Ident(..))
 import CoreFn.Module (Module(..))
 import CoreFn.ModuleName (ModuleName(..))
 import Data.Either (either)
@@ -17,6 +17,9 @@ import Data.Foreign (ForeignError(..))
 testFromJSON :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
 testFromJSON = do
 
+  -- |
+  -- Name
+  --
   expectLeft (moduleFromJSON """
     {}
   """) \(x) ->
@@ -26,39 +29,39 @@ testFromJSON = do
     {
       "Main": {
         "imports": [],
-        "comments": []
+        "exports": []
       }
     }
   """) \(Module x) ->
     assertEqual x.moduleName (ModuleName "Main")
 
+  -- |
+  -- Exports
+  --
   expectRight (moduleFromJSON """
     {
       "Main": {
         "imports": [],
-        "comments": [
-          {
-            "BlockComment": "A block comment"
-          },
-          {
-            "LineComment": "A line comment"
-          }
+        "exports": [
+          "main"
         ]
       }
     }
   """) \(Module x) ->
-    assertEqual x.moduleComments
-    [ (BlockComment "A block comment")
-    , (LineComment "A line comment")
-    ]
+    assertEqual x.moduleExports
+      [ (Ident "main")
+      ]
 
+  -- |
+  -- Imports
+  --
   expectRight (moduleFromJSON """
     {
       "Main": {
         "imports": [
           "Prim"
         ],
-        "comments": []
+        "exports": []
       }
     }
   """) \(Module x) ->
