@@ -2,7 +2,6 @@ module CoreFn.Module where
 
 import Prelude
 import Control.Error.Util (note)
-import CoreFn.Comment (Comment)
 import CoreFn.Ident (Ident)
 import CoreFn.ModuleName (ModuleName(..))
 import Data.Array as Array
@@ -17,8 +16,7 @@ import Data.Generic (gCompare, gEq, gShow, class Generic)
 -- The CoreFn module representation
 --
 data Module = Module
-  { moduleComments :: Array Comment
-  , moduleExports :: Array Ident
+  { moduleExports :: Array Ident
   , moduleImports :: Array ModuleName
   , moduleName :: ModuleName
   }
@@ -29,14 +27,12 @@ instance isForeignModule :: IsForeign Module where
   read x = do
     let key = firstKey x
     value <- key >>= (flip prop) x
-    moduleComments <- readProp "comments" value
     moduleExports <- readProp "exports" value
     moduleImports <- readProp "imports" value
     moduleName <- ModuleName <$> key
 
     pure $ Module
-      { moduleComments: moduleComments
-      , moduleExports: moduleExports
+      { moduleExports: moduleExports
       , moduleImports: moduleImports
       , moduleName: moduleName
       }

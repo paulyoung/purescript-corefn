@@ -6,7 +6,6 @@ import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION, throwException, error)
-import CoreFn.Comment (Comment(..))
 import CoreFn.FromJSON (moduleFromJSON)
 import CoreFn.Ident (Ident(..))
 import CoreFn.Module (Module(..))
@@ -27,8 +26,7 @@ testFromJSON = do
     {
       "Main": {
         "imports": [],
-        "exports": [],
-        "comments": []
+        "exports": []
       }
     }
   """) \(Module x) ->
@@ -38,31 +36,9 @@ testFromJSON = do
     {
       "Main": {
         "imports": [],
-        "exports": [],
-        "comments": [
-          {
-            "BlockComment": "A block comment"
-          },
-          {
-            "LineComment": "A line comment"
-          }
-        ]
-      }
-    }
-  """) \(Module x) ->
-    assertEqual x.moduleComments
-    [ (BlockComment "A block comment")
-    , (LineComment "A line comment")
-    ]
-
-  expectRight (moduleFromJSON """
-    {
-      "Main": {
-        "imports": [],
         "exports": [
           "main"
-        ],
-        "comments": []
+        ]
       }
     }
   """) \(Module x) ->
@@ -76,8 +52,7 @@ testFromJSON = do
         "imports": [
           "Prim"
         ],
-        "exports": [],
-        "comments": []
+        "exports": []
       }
     }
   """) \(Module x) ->
