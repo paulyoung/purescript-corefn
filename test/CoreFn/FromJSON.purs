@@ -17,6 +17,9 @@ import Data.Foreign (ForeignError(..))
 testFromJSON :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
 testFromJSON = do
 
+  -- |
+  -- Name
+  --
   expectLeft (moduleFromJSON """
     {}
   """) \(x) ->
@@ -32,6 +35,9 @@ testFromJSON = do
   """) \(Module x) ->
     assertEqual x.moduleName (ModuleName "Main")
 
+  -- |
+  -- Exports
+  --
   expectRight (moduleFromJSON """
     {
       "Main": {
@@ -46,6 +52,9 @@ testFromJSON = do
       [ (Ident "main")
       ]
 
+  -- |
+  -- Imports
+  --
   expectRight (moduleFromJSON """
     {
       "Main": {
