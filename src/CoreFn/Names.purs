@@ -1,4 +1,4 @@
-module CoreFn.ModuleName
+module CoreFn.Names
   ( ModuleName(..)
   ) where
 
@@ -7,6 +7,9 @@ import Data.Foreign (readString)
 import Data.Foreign.Class (class IsForeign)
 import Data.Generic (class Generic, gCompare, gEq, gShow)
 
+-- |
+-- Module names
+--
 newtype ModuleName = ModuleName String
 
 derive instance genericModuleName :: Generic ModuleName

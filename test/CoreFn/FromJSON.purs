@@ -9,7 +9,7 @@ import Control.Monad.Eff.Exception (EXCEPTION)
 import CoreFn.FromJSON (moduleFromJSON)
 import CoreFn.Ident (Ident(..))
 import CoreFn.Module (Module(..))
-import CoreFn.ModuleName (ModuleName(..))
+import CoreFn.Names (ModuleName(..))
 import Data.Foreign (ForeignError(..))
 import Test.Util (assertEqual, expectLeft, expectRight)
 
