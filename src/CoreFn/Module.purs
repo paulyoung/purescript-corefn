@@ -1,4 +1,6 @@
-module CoreFn.Module where
+module CoreFn.Module
+  ( Module(..)
+  ) where
 
 import Prelude
 import Control.Error.Util (note)
