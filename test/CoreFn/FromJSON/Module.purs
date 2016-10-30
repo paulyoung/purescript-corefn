@@ -15,17 +15,18 @@ import Test.Util (assertEqual, expectLeft, expectRight)
 
 testModuleFromJSON :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
 testModuleFromJSON = do
-  log "Test moduleFromJSON"
+  log ""
+  log "Test.CoreFn.FromJSON.Module"
 
   -- |
   -- Name
   --
-  expectLeft (moduleFromJSON """
+  expectLeft "Missing module name in JSON results in error" (moduleFromJSON """
     {}
   """) \(x) ->
     assertEqual x (JSONError "Module name not found")
 
-  expectRight (moduleFromJSON """
+  expectRight "Module name from JSON results in success" (moduleFromJSON """
     {
       "Main": {
         "imports": [],
@@ -38,7 +39,7 @@ testModuleFromJSON = do
   -- |
   -- Exports
   --
-  expectRight (moduleFromJSON """
+  expectRight "Module exports from JSON result in success" (moduleFromJSON """
     {
       "Main": {
         "imports": [],
@@ -55,7 +56,7 @@ testModuleFromJSON = do
   -- |
   -- Imports
   --
-  expectRight (moduleFromJSON """
+  expectRight "Module imports from JSON result in success" (moduleFromJSON """
     {
       "Main": {
         "imports": [

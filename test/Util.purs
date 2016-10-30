@@ -31,17 +31,23 @@ expectedRight x = fail "Right" $ show x
 
 expectLeft :: forall a b c
              . (Show c)
-             => Either a c
-             -> (a -> Eff (err :: EXCEPTION | b) Unit)
-             -> Eff (err :: EXCEPTION | b) Unit
-expectLeft x f = either f expectedLeft x
+             => String
+             -> Either a c
+             -> (a -> Eff (console :: CONSOLE, err :: EXCEPTION | b) Unit)
+             -> Eff (console :: CONSOLE, err :: EXCEPTION | b) Unit
+expectLeft description x f = do
+  log $ "  " <> description
+  either f expectedLeft x
 
 expectRight :: forall a b c
              . (Show c)
-             => Either c a
-             -> (a -> Eff (err :: EXCEPTION | b) Unit)
-             -> Eff (err :: EXCEPTION | b) Unit
-expectRight x g = either expectedRight g x
+             => String
+             -> Either c a
+             -> (a -> Eff (console :: CONSOLE, err :: EXCEPTION | b) Unit)
+             -> Eff (console :: CONSOLE, err :: EXCEPTION | b) Unit
+expectRight description x g = do
+  log $ "  " <> description
+  either expectedRight g x
 
 green :: String
 green = "\x1b[32m"
@@ -56,7 +62,7 @@ greenCheck :: String
 greenCheck = green <> check <> reset
 
 logSuccess :: forall e. String -> Eff (console :: CONSOLE | e) Unit
-logSuccess x = log $ "  " <> greenCheck <> " " <> x
+logSuccess x = log $ "    " <> greenCheck <> " " <> x
 
 logSuccessShow :: forall a e. (Show a) => a -> Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
 logSuccessShow x = logSuccess $ show x
