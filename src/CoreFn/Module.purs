@@ -1,9 +1,11 @@
-module CoreFn.Module where
+module CoreFn.Module
+  ( Module(..)
+  ) where
 
 import Prelude
 import Control.Error.Util (note)
 import CoreFn.Ident (Ident)
-import CoreFn.ModuleName (ModuleName(..))
+import CoreFn.Names (ModuleName(..))
 import Data.Array as Array
 import Data.Either (Either)
 import Data.Foreign (Foreign, ForeignError(..))
