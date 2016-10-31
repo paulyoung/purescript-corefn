@@ -1,6 +1,7 @@
 module CoreFn.Names
   ( ModuleName(..)
   , OpName(..)
+  , ProperName(..)
   ) where
 
 import Prelude
@@ -45,3 +46,24 @@ instance eqOpName :: Eq OpName where
 
 instance ordOpName :: Ord OpName where
   compare = gCompare
+
+-- |
+-- Proper name, i.e. capitalized names for e.g. module names, type/data
+-- constructors.
+--
+newtype ProperName = ProperName String
+
+derive instance genericProperName :: Generic ProperName
+
+instance isForeignProperName :: IsForeign ProperName where
+  read value = ProperName <$> readString value
+
+instance showProperName :: Show ProperName where
+  show = gShow
+
+instance eqProperName :: Eq ProperName where
+  eq = gEq
+
+instance ordProperName :: Ord ProperName where
+  compare = gCompare
+

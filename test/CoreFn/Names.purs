@@ -6,7 +6,7 @@ import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
-import CoreFn.Names (ModuleName(..), OpName(..))
+import CoreFn.Names (ModuleName(..), OpName(..), ProperName(..))
 import Data.Either (Either)
 import Data.Foreign (ForeignError)
 import Data.Foreign.Class (readJSON)
@@ -19,6 +19,7 @@ testNames = do
 
   testModuleName
   testOpName
+  testProperName
 
   where
 
@@ -51,3 +52,18 @@ testNames = do
 
     expectRight description result \(x) ->
       assertEqual x (OpName "Control.Bind.bind")
+
+  -- |
+  -- ProperName
+  --
+  testProperName = do
+    let description = "ProperName from JSON results in success"
+
+    let json = """
+      "Nothing"
+    """
+
+    let result = readJSON json :: Either ForeignError ProperName
+
+    expectRight description result \(x) ->
+      assertEqual x (ProperName "Nothing")
