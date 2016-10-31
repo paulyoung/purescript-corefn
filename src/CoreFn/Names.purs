@@ -1,5 +1,6 @@
 module CoreFn.Names
   ( ModuleName(..)
+  , OpName(..)
   ) where
 
 import Prelude
@@ -24,4 +25,23 @@ instance eqModuleName :: Eq ModuleName where
   eq = gEq
 
 instance ordModuleName :: Ord ModuleName where
+  compare = gCompare
+
+-- |
+-- Operator alias names.
+--
+newtype OpName = OpName String
+
+derive instance genericOpName :: Generic OpName
+
+instance isForeignOpName :: IsForeign OpName where
+  read value = OpName <$> readString value
+
+instance showOpName :: Show OpName where
+  show = gShow
+
+instance eqOpName :: Eq OpName where
+  eq = gEq
+
+instance ordOpName :: Ord OpName where
   compare = gCompare
