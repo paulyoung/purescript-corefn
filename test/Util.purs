@@ -10,41 +10,48 @@ import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION, throwException, error)
 import Data.Either (either, Either)
 
-assertEqual :: forall a e. (Eq a, Show a) => a -> a -> Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
+assertEqual
+  :: forall a eff
+   . (Eq a, Show a)
+  => a
+  -> a
+  -> Eff (console :: CONSOLE, err :: EXCEPTION | eff) Unit
 assertEqual actual expected =
   if actual == expected
     then logSuccessShow actual
     else fail (show expected) (show actual)
 
-fail :: forall e. String -> String -> Eff (err :: EXCEPTION | e) Unit
+fail :: forall eff. String -> String -> Eff (err :: EXCEPTION | eff) Unit
 fail expected actual = failure $ "\n"
   <> "  expected:\n"
   <> "    " <> expected <> "\n"
   <> "  actual:\n"
   <> "    " <> actual <> "\n"
 
-expectedLeft ::  forall a e. (Show a) => a -> Eff (err :: EXCEPTION | e) Unit
+expectedLeft :: forall a eff. Show a => a -> Eff (err :: EXCEPTION | eff) Unit
 expectedLeft x = fail "Left" $ show x
 
-expectedRight ::  forall a e. (Show a) => a -> Eff (err :: EXCEPTION | e) Unit
+expectedRight :: forall b eff. Show b => b -> Eff (err :: EXCEPTION | eff) Unit
 expectedRight x = fail "Right" $ show x
 
-expectLeft :: forall a b c
-             . (Show c)
-             => String
-             -> Either a c
-             -> (a -> Eff (console :: CONSOLE, err :: EXCEPTION | b) Unit)
-             -> Eff (console :: CONSOLE, err :: EXCEPTION | b) Unit
+expectLeft
+  :: forall a b eff
+   . Show b
+  => String
+  -> Either a b
+  -> (a -> Eff (console :: CONSOLE, err :: EXCEPTION | eff) Unit)
+  -> Eff (console :: CONSOLE, err :: EXCEPTION | eff) Unit
 expectLeft description x f = do
   log $ "  " <> description
   either f expectedLeft x
 
-expectRight :: forall a b c
-             . (Show c)
-             => String
-             -> Either c a
-             -> (a -> Eff (console :: CONSOLE, err :: EXCEPTION | b) Unit)
-             -> Eff (console :: CONSOLE, err :: EXCEPTION | b) Unit
+expectRight
+  :: forall a b eff
+   . Show a
+  => String
+  -> Either a b
+  -> (b -> Eff (console :: CONSOLE, err :: EXCEPTION | eff) Unit)
+  -> Eff (console :: CONSOLE, err :: EXCEPTION | eff) Unit
 expectRight description x g = do
   log $ "  " <> description
   either expectedRight g x
@@ -61,11 +68,15 @@ check = "✓"
 greenCheck :: String
 greenCheck = green <> check <> reset
 
-logSuccess :: forall e. String -> Eff (console :: CONSOLE | e) Unit
+logSuccess :: forall eff. String -> Eff (console :: CONSOLE | eff) Unit
 logSuccess x = log $ "    " <> greenCheck <> " " <> x
 
-logSuccessShow :: forall a e. (Show a) => a -> Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
+logSuccessShow
+  :: forall a eff
+   . Show a
+  => a
+  -> Eff (console :: CONSOLE, err :: EXCEPTION | eff) Unit
 logSuccessShow x = logSuccess $ show x
 
-failure :: forall e. String -> Eff (err :: EXCEPTION | e) Unit
+failure :: forall eff. String -> Eff (err :: EXCEPTION | eff) Unit
 failure = throwException <<< error
