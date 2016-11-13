@@ -1,14 +1,17 @@
 module Test.Util
   ( assertEqual
-  , expectLeft
-  , expectRight
+  , expectFailure
+  , expectSuccess
   ) where
 
 import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION, throwException, error)
+import Control.Monad.Except (runExcept)
+import Control.Monad.Except.Trans (ExceptT)
 import Data.Either (either, Either)
+import Data.Identity (Identity)
 
 assertEqual
   :: forall a eff
@@ -55,6 +58,24 @@ expectRight
 expectRight description x g = do
   log $ "  " <> description
   either expectedRight g x
+
+expectFailure
+  :: forall a b eff
+   . Show b
+  => String
+  -> ExceptT a Identity b
+  -> (a -> Eff (console :: CONSOLE, err :: EXCEPTION | eff) Unit)
+  -> Eff (console :: CONSOLE, err :: EXCEPTION | eff) Unit
+expectFailure description x = expectLeft description (runExcept x)
+
+expectSuccess
+  :: forall a b eff
+   . Show a
+  => String
+  -> ExceptT a Identity b
+  -> (b -> Eff (console :: CONSOLE, err :: EXCEPTION | eff) Unit)
+  -> Eff (console :: CONSOLE, err :: EXCEPTION | eff) Unit
+expectSuccess description x = expectRight description (runExcept x)
 
 green :: String
 green = "\x1b[32m"

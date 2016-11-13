@@ -6,14 +6,13 @@ import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
-import Control.Monad.Except (runExcept)
 import Control.Monad.Except.Trans (ExceptT)
 import CoreFn.Names (ModuleName(..), OpName(..), ProperName(..))
 import Data.Foreign (ForeignError)
 import Data.Foreign.Class (readJSON)
 import Data.Identity (Identity)
 import Data.List.Types (NonEmptyList)
-import Test.Util (assertEqual, expectRight)
+import Test.Util (assertEqual, expectSuccess)
 
 testNames :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
 testNames = do
@@ -38,7 +37,7 @@ testNames = do
 
     let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity ModuleName
 
-    expectRight description (runExcept result) \(x) ->
+    expectSuccess description result \(x) ->
       assertEqual x (ModuleName "Main")
 
   -- |
@@ -53,7 +52,7 @@ testNames = do
 
     let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity OpName
 
-    expectRight description (runExcept result) \(x) ->
+    expectSuccess description result \(x) ->
       assertEqual x (OpName "Control.Bind.bind")
 
   -- |
@@ -68,5 +67,5 @@ testNames = do
 
     let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity ProperName
 
-    expectRight description (runExcept result) \(x) ->
+    expectSuccess description result \(x) ->
       assertEqual x (ProperName "Nothing")
