@@ -6,7 +6,6 @@ import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
-import Control.Monad.Except (runExcept)
 import Control.Monad.Except.Trans (ExceptT)
 import CoreFn.Ident (Ident(..))
 import CoreFn.Module (Module(..))
@@ -16,7 +15,7 @@ import Data.Foreign.Class (readJSON)
 import Data.Identity (Identity)
 import Data.List.NonEmpty (singleton)
 import Data.List.Types (NonEmptyList)
-import Test.Util (assertEqual, expectLeft, expectRight)
+import Test.Util (assertEqual, expectFailure, expectSuccess)
 
 testModule :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
 testModule = do
@@ -42,7 +41,7 @@ testModule = do
 
     let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Module
 
-    expectLeft description (runExcept result) \(x) ->
+    expectFailure description result \(x) ->
       assertEqual x (singleton (JSONError "Module name not found"))
 
   testName = do
@@ -59,7 +58,7 @@ testModule = do
 
     let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Module
 
-    expectRight description (runExcept result) \(Module x) ->
+    expectSuccess description result \(Module x) ->
       assertEqual x.moduleName (ModuleName "Main")
 
   -- |
@@ -81,7 +80,7 @@ testModule = do
 
     let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Module
 
-    expectRight description (runExcept result) \(Module x) ->
+    expectSuccess description result \(Module x) ->
       assertEqual x.moduleExports
         [ (Ident "main")
         ]
@@ -105,7 +104,7 @@ testModule = do
 
     let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Module
 
-    expectRight description (runExcept result) \(Module x) ->
+    expectSuccess description result \(Module x) ->
       assertEqual x.moduleImports
         [ (ModuleName "Prim")
         ]

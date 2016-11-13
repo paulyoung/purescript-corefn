@@ -6,14 +6,13 @@ import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
-import Control.Monad.Except (runExcept)
 import Control.Monad.Except.Trans (ExceptT)
 import CoreFn.Ident (Ident(..))
 import Data.Foreign (ForeignError)
 import Data.Foreign.Class (readJSON)
 import Data.Identity (Identity)
 import Data.List.Types (NonEmptyList)
-import Test.Util (assertEqual, expectRight)
+import Test.Util (assertEqual, expectSuccess)
 
 testIdent :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
 testIdent = do
@@ -36,5 +35,5 @@ testIdent = do
 
     let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Ident
 
-    expectRight description (runExcept result) \(x) ->
+    expectSuccess description result \(x) ->
       assertEqual x (Ident "main")
