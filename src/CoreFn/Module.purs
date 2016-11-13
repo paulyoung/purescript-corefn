@@ -3,16 +3,19 @@ module CoreFn.Module
   ) where
 
 import Prelude
-import Control.Error.Util (note)
+import Data.Array as Array
+import Control.Error.Util (exceptNoteA)
+import Control.Monad.Except.Trans (ExceptT)
 import CoreFn.Ident (Ident)
 import CoreFn.Names (ModuleName(..))
-import Data.Array as Array
-import Data.Either (Either)
 import Data.Foreign (Foreign, ForeignError(..))
 import Data.Foreign.Class (readProp, class IsForeign)
 import Data.Foreign.Index (prop)
 import Data.Foreign.Keys (keys)
 import Data.Generic (gCompare, gEq, gShow, class Generic)
+import Data.Identity (Identity(..))
+import Data.List.NonEmpty (singleton)
+import Data.List.Types (NonEmptyList)
 
 -- |
 -- The CoreFn module representation
@@ -41,10 +44,11 @@ instance isForeignModule :: IsForeign Module where
 
     where
 
-    head :: forall a. Array a -> Either ForeignError a
-    head = note (JSONError "Module name not found") <<< Array.head
+    head :: forall a. Array a -> ExceptT (NonEmptyList ForeignError) Identity a
+    head x = exceptNoteA ((Identity <<< Array.head) x)
+                         (singleton (JSONError "Module name not found"))
 
-    firstKey :: Foreign -> Either ForeignError String
+    firstKey :: Foreign -> ExceptT (NonEmptyList ForeignError) Identity String
     firstKey x = keys x >>= head
 
 instance showModule :: Show Module where
