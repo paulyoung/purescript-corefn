@@ -45,11 +45,11 @@ instance isForeignModule :: IsForeign Module where
     where
 
     head :: forall a. Array a -> ExceptT (NonEmptyList ForeignError) Identity a
-    head x = exceptNoteA ((Identity <<< Array.head) x)
+    head y = exceptNoteA ((Identity <<< Array.head) y)
                          (singleton (JSONError "Module name not found"))
 
     firstKey :: Foreign -> ExceptT (NonEmptyList ForeignError) Identity String
-    firstKey x = keys x >>= head
+    firstKey y = keys y >>= head
 
 instance showModule :: Show Module where
   show = gShow
