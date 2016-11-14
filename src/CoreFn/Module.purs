@@ -12,7 +12,7 @@ import Data.Foreign (Foreign, ForeignError(..))
 import Data.Foreign.Class (readProp, class IsForeign)
 import Data.Foreign.Index (prop)
 import Data.Foreign.Keys (keys)
-import Data.Generic (gCompare, gEq, gShow, class Generic)
+import Data.Generic (gShow, class Generic)
 import Data.Identity (Identity(..))
 import Data.List.NonEmpty (singleton)
 import Data.List.Types (NonEmptyList)
@@ -26,7 +26,9 @@ data Module = Module
   , moduleName :: ModuleName
   }
 
+derive instance eqModule :: Eq Module
 derive instance genericModule :: Generic Module
+derive instance ordModule :: Ord Module
 
 instance isForeignModule :: IsForeign Module where
   read x = do
@@ -53,9 +55,3 @@ instance isForeignModule :: IsForeign Module where
 
 instance showModule :: Show Module where
   show = gShow
-
-instance eqModule :: Eq Module where
-  eq = gEq
-
-instance ordModule :: Ord Module where
-  compare = gCompare
