@@ -41,8 +41,10 @@ instance ordModuleName :: Ord ModuleName where
 --
 newtype OpName = OpName String
 
+derive instance eqOpName :: Eq OpName
 derive instance genericOpName :: Generic OpName
 derive instance newtypeOpName :: Newtype OpName _
+derive instance ordOpName :: Ord OpName
 
 instance isForeignOpName :: IsForeign OpName where
   read value = OpName <$> readString value
@@ -50,20 +52,16 @@ instance isForeignOpName :: IsForeign OpName where
 instance showOpName :: Show OpName where
   show = gShow
 
-instance eqOpName :: Eq OpName where
-  eq = gEq
-
-instance ordOpName :: Ord OpName where
-  compare = gCompare
-
 -- |
 -- Proper name, i.e. capitalized names for e.g. module names, type/data
 -- constructors.
 --
 newtype ProperName = ProperName String
 
+derive instance eqPropername :: Eq ProperName
 derive instance genericProperName :: Generic ProperName
 derive instance newtypeProperName :: Newtype ProperName _
+derive instance ordProperName :: Ord ProperName
 
 instance isForeignProperName :: IsForeign ProperName where
   read value = ProperName <$> readString value
@@ -71,18 +69,14 @@ instance isForeignProperName :: IsForeign ProperName where
 instance showProperName :: Show ProperName where
   show = gShow
 
-instance eqProperName :: Eq ProperName where
-  eq = gEq
-
-instance ordProperName :: Ord ProperName where
-  compare = gCompare
-
 -- |
 -- A qualified name, i.e. a name with an optional module name
 --
 data Qualified a = Qualified (Maybe ModuleName) a
 
+derive instance eqQualified :: (Generic a, Eq a) => Eq (Qualified a)
 derive instance genericQualified :: (Generic a) => Generic (Qualified a)
+derive instance ordQualified :: (Generic a, Ord a) => Ord (Qualified a)
 
 instance isForeignQualified :: Newtype t String => IsForeign (Qualified t) where
   read value = readString value >>= (flip exceptNoteM errors) <<< toQualified
@@ -111,9 +105,3 @@ instance isForeignQualified :: Newtype t String => IsForeign (Qualified t) where
 
 instance showQualified :: (Generic a, Show a) => Show (Qualified a) where
   show = gShow
-
-instance eqQualified :: (Generic a, Eq a) => Eq (Qualified a) where
-  eq = gEq
-
-instance ordQualified :: (Generic a, Ord a) => Ord (Qualified a) where
-  compare = gCompare
