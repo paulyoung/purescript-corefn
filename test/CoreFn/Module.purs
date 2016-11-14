@@ -42,7 +42,7 @@ testModule = do
     let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Module
 
     expectFailure description result \(x) ->
-      assertEqual x (singleton (JSONError "Module name not found"))
+      assertEqual x (singleton (ForeignError "Module name not found"))
 
   testName = do
     let description = "Module name from JSON results in success"
