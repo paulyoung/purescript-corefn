@@ -46,7 +46,7 @@ instance isForeignModule :: IsForeign Module where
 
     head :: forall a. Array a -> ExceptT (NonEmptyList ForeignError) Identity a
     head y = exceptNoteA ((Identity <<< Array.head) y)
-                         (singleton (JSONError "Module name not found"))
+                         (singleton (ForeignError "Module name not found"))
 
     firstKey :: Foreign -> ExceptT (NonEmptyList ForeignError) Identity String
     firstKey y = keys y >>= head
