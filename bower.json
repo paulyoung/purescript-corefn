@@ -9,7 +9,9 @@
   "dependencies": {
     "purescript-console": "^2.0.0",
     "purescript-foreign-generic": "^2.0.0",
-    "purescript-errors": "^2.0.0"
+    "purescript-errors": "^2.0.0",
+    "purescript-strings": "^2.0.0",
+    "purescript-newtype": "^1.0.0"
   },
   "devDependencies": {
     "purescript-psci-support": "^2.0.0"
