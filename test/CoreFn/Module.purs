@@ -26,6 +26,7 @@ testModule = do
   testName
   testExports
   testImports
+  testForeign
 
   where
 
@@ -51,7 +52,8 @@ testModule = do
       {
         "Main": {
           "imports": [],
-          "exports": []
+          "exports": [],
+          "foreign": []
         }
       }
     """
@@ -73,7 +75,8 @@ testModule = do
           "imports": [],
           "exports": [
             "main"
-          ]
+          ],
+          "foreign": []
         }
       }
     """
@@ -97,7 +100,8 @@ testModule = do
           "imports": [
             "Prim"
           ],
-          "exports": []
+          "exports": [],
+          "foreign": []
         }
       }
     """
@@ -107,4 +111,29 @@ testModule = do
     expectSuccess description result \(Module x) ->
       assertEqual x.moduleImports
         [ (ModuleName "Prim")
+        ]
+
+  -- |
+  -- Foreign declarations
+  --
+  testForeign = do
+    let description = "Foreign declarations from JSON result in success"
+
+    let json = """
+      {
+        "Main": {
+          "imports": [],
+          "exports": [],
+          "foreign": [
+            "log"
+          ]
+        }
+      }
+    """
+
+    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Module
+
+    expectSuccess description result \(Module x) ->
+      assertEqual x.moduleForeign
+        [ (Ident "log")
         ]
