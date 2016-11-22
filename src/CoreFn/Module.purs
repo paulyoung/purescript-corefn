@@ -22,6 +22,7 @@ import Data.List.Types (NonEmptyList)
 --
 data Module = Module
   { moduleExports :: Array Ident
+  , moduleForeign :: Array Ident
   , moduleImports :: Array ModuleName
   , moduleName :: ModuleName
   }
@@ -35,11 +36,13 @@ instance isForeignModule :: IsForeign Module where
     let key = firstKey x
     value <- key >>= (flip prop) x
     moduleExports <- readProp "exports" value
+    moduleForeign <- readProp "foreign" value
     moduleImports <- readProp "imports" value
     moduleName <- ModuleName <$> key
 
     pure $ Module
       { moduleExports: moduleExports
+      , moduleForeign: moduleForeign
       , moduleImports: moduleImports
       , moduleName: moduleName
       }
