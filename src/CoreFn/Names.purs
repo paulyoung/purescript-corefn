@@ -58,7 +58,7 @@ instance showOpName :: Show OpName where
 --
 newtype ProperName = ProperName String
 
-derive instance eqPropername :: Eq ProperName
+derive instance eqProperName :: Eq ProperName
 derive instance genericProperName :: Generic ProperName
 derive instance newtypeProperName :: Newtype ProperName _
 derive instance ordProperName :: Ord ProperName
