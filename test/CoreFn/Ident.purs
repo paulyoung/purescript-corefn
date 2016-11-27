@@ -35,5 +35,5 @@ testIdent = do
 
     let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Ident
 
-    expectSuccess description result \(x) ->
+    expectSuccess description result \x ->
       assertEqual x (Ident "main")

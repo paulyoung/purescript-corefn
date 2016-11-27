@@ -8,9 +8,9 @@ module CoreFn.Names
 import Prelude
 import Control.Error.Util (exceptNoteM)
 import Data.Array (init, last, null)
-import Data.Foreign (readString, ForeignError(ForeignError))
+import Data.Foreign (readString, ForeignError(..))
 import Data.Foreign.Class (class IsForeign)
-import Data.Generic (class Generic, gCompare, gEq, gShow)
+import Data.Generic (class Generic, gShow)
 import Data.List.NonEmpty (singleton)
 import Data.List.Types (NonEmptyList)
 import Data.Maybe (Maybe(..))
@@ -22,19 +22,16 @@ import Data.String (Pattern(..), joinWith, split)
 --
 newtype ModuleName = ModuleName String
 
+derive instance eqModuleName :: Eq ModuleName
 derive instance genericModuleName :: Generic ModuleName
+derive instance newtypeModuleName :: Newtype ModuleName _
+derive instance ordModuleName :: Ord ModuleName
 
 instance isForeignModuleName :: IsForeign ModuleName where
   read value = ModuleName <$> readString value
 
 instance showModuleName :: Show ModuleName where
   show = gShow
-
-instance eqModuleName :: Eq ModuleName where
-  eq = gEq
-
-instance ordModuleName :: Ord ModuleName where
-  compare = gCompare
 
 -- |
 -- Operator alias names.
@@ -58,7 +55,7 @@ instance showOpName :: Show OpName where
 --
 newtype ProperName = ProperName String
 
-derive instance eqPropername :: Eq ProperName
+derive instance eqProperName :: Eq ProperName
 derive instance genericProperName :: Generic ProperName
 derive instance newtypeProperName :: Newtype ProperName _
 derive instance ordProperName :: Ord ProperName

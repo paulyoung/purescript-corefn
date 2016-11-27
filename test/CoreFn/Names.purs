@@ -42,7 +42,7 @@ testNames = do
 
     let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity ModuleName
 
-    expectSuccess description result \(x) ->
+    expectSuccess description result \x ->
       assertEqual x (ModuleName "Main")
 
   -- |
@@ -57,7 +57,7 @@ testNames = do
 
     let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity OpName
 
-    expectSuccess description result \(x) ->
+    expectSuccess description result \x ->
       assertEqual x (OpName "Control.Bind.bind")
 
   -- |
@@ -72,7 +72,7 @@ testNames = do
 
     let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity ProperName
 
-    expectSuccess description result \(x) ->
+    expectSuccess description result \x ->
       assertEqual x (ProperName "Nothing")
 
   -- |
