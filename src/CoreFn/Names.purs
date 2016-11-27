@@ -8,7 +8,7 @@ module CoreFn.Names
 import Prelude
 import Control.Error.Util (exceptNoteM)
 import Data.Array (init, last, null)
-import Data.Foreign (readString, ForeignError(ForeignError))
+import Data.Foreign (readString, ForeignError(..))
 import Data.Foreign.Class (class IsForeign)
 import Data.Generic (class Generic, gShow)
 import Data.List.NonEmpty (singleton)
