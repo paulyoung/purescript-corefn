@@ -24,6 +24,7 @@ newtype ModuleName = ModuleName String
 
 derive instance eqModuleName :: Eq ModuleName
 derive instance genericModuleName :: Generic ModuleName
+derive instance newtypeModuleName :: Newtype ModuleName _
 derive instance ordModuleName :: Ord ModuleName
 
 instance isForeignModuleName :: IsForeign ModuleName where
