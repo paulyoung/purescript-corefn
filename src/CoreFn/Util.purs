@@ -2,10 +2,10 @@
 -- Utilities for working with the JSON representation of the functional core.
 --
 module CoreFn.Util
-  ( mapCoreFnValue
+  ( foreignError
+  , mapCoreFnValue
   , readCoreFnLabel
   , readCoreFnValue
-  , unrecognizedLabel
   ) where
 
 import Prelude
@@ -16,6 +16,16 @@ import Data.Foreign.Class (class IsForeign, readProp)
 import Data.Identity (Identity)
 import Data.List.NonEmpty (singleton)
 import Data.List.Types (NonEmptyList)
+
+-- |
+-- Create a `NonEmptyList` of a single `ForeignError` using the exception monad
+-- transformer `ExceptT`.
+--
+foreignError
+  :: forall a
+   . String
+  -> ExceptT (NonEmptyList ForeignError) Identity a
+foreignError = except <<< Left <<< singleton <<< ForeignError
 
 -- |
 -- Read the label of a type in the JSON representation.
@@ -47,13 +57,3 @@ mapCoreFnValue
   -> Foreign
   -> ExceptT (NonEmptyList ForeignError) Identity b
 mapCoreFnValue f = map f <<< readCoreFnValue
-
-
-unrecognizedLabel
-  :: forall a b c d
-   . (Applicative d)
-  => a
-  -> b
-  -> String
-  -> ExceptT (NonEmptyList ForeignError) d c
-unrecognizedLabel label _ = except <<< Left <<< singleton <<< ForeignError

@@ -8,7 +8,7 @@ module CoreFn.Expr
 
 import Prelude
 import Control.Monad.Except.Trans (ExceptT)
-import CoreFn.Util (mapCoreFnValue, readCoreFnLabel, readCoreFnValue, unrecognizedLabel)
+import CoreFn.Util (foreignError, mapCoreFnValue, readCoreFnLabel, readCoreFnValue)
 import Data.Either (Either(..))
 import Data.Foreign (Foreign, ForeignError)
 import Data.Foreign.Class (class IsForeign, read, readProp)
@@ -93,8 +93,7 @@ instance isForeignLiteral :: (IsForeign a) => IsForeign (Literal a) where
       obj <- readCoreFnValue v
       keys <- K.keys obj
       ObjectLiteral <$> readPairs obj keys
-    readLiteral label = \v ->
-      unrecognizedLabel label v ("Unknown literal: " <> label)
+    readLiteral label = \_ -> foreignError $ "Unknown literal: " <> label
 
 instance showLiteral :: (Generic a, Show a) => Show (Literal a) where
   show = gShow
@@ -119,8 +118,7 @@ instance isForeignExpr :: IsForeign (Expr Unit) where
 
     readExpr :: String -> Foreign -> ExceptT (NonEmptyList ForeignError) Identity (Expr Unit)
     readExpr "Literal" = mapCoreFnValue (Literal unit)
-    readExpr label = \v ->
-      unrecognizedLabel label v ("Unknown expression: " <> label)
+    readExpr label = \_ -> foreignError $ "Unknown expression: " <> label
 
 instance showExpr :: (Generic a, Show a) => Show (Expr a) where
   show = gShow
