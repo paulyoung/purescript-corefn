@@ -24,8 +24,8 @@ testModule = do
 
   testMissingName
   testName
-  testExports
   testImports
+  testExports
   testForeign
 
   where
@@ -64,31 +64,6 @@ testModule = do
       assertEqual x.moduleName (ModuleName "Main")
 
   -- |
-  -- Exports
-  --
-  testExports = do
-    let description = "Module exports from JSON result in success"
-
-    let json = """
-      {
-        "Main": {
-          "imports": [],
-          "exports": [
-            "main"
-          ],
-          "foreign": []
-        }
-      }
-    """
-
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Module
-
-    expectSuccess description result \(Module x) ->
-      assertEqual x.moduleExports
-        [ (Ident "main")
-        ]
-
-  -- |
   -- Imports
   --
   testImports = do
@@ -111,6 +86,31 @@ testModule = do
     expectSuccess description result \(Module x) ->
       assertEqual x.moduleImports
         [ (ModuleName "Prim")
+        ]
+
+  -- |
+  -- Exports
+  --
+  testExports = do
+    let description = "Module exports from JSON result in success"
+
+    let json = """
+      {
+        "Main": {
+          "imports": [],
+          "exports": [
+            "main"
+          ],
+          "foreign": []
+        }
+      }
+    """
+
+    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Module
+
+    expectSuccess description result \(Module x) ->
+      assertEqual x.moduleExports
+        [ (Ident "main")
         ]
 
   -- |
