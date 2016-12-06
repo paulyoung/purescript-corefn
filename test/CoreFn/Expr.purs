@@ -252,4 +252,3 @@ testExpr = do
 
     expectFailure description result \x ->
       assertEqual x (singleton (ForeignError "Unknown expression: SomeExpression"))
-
