@@ -116,7 +116,10 @@ instance isForeignExpr :: IsForeign (Expr Unit) where
 
     where
 
-    readExpr :: String -> Foreign -> ExceptT (NonEmptyList ForeignError) Identity (Expr Unit)
+    readExpr
+      :: String
+      -> Foreign
+      -> ExceptT (NonEmptyList ForeignError) Identity (Expr Unit)
     readExpr "Literal" = mapCoreFnValue (Literal unit)
     readExpr label = \_ -> foreignError $ "Unknown expression: " <> label
 
