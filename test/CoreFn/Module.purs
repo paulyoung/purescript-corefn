@@ -6,15 +6,11 @@ import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
-import Control.Monad.Except.Trans (ExceptT)
 import CoreFn.Ident (Ident(..))
-import CoreFn.Module (Module(..))
+import CoreFn.Module (Module(..), readModuleJSON)
 import CoreFn.Names (ModuleName(..))
 import Data.Foreign (ForeignError(..))
-import Data.Foreign.Class (readJSON)
-import Data.Identity (Identity)
 import Data.List.NonEmpty (singleton)
-import Data.List.Types (NonEmptyList)
 import Test.Util (assertEqual, expectFailure, expectSuccess)
 
 testModule :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
@@ -40,9 +36,7 @@ testModule = do
       {}
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Module
-
-    expectFailure description result \x ->
+    expectFailure description (readModuleJSON json) \x ->
       assertEqual x (singleton (ForeignError "Module name not found"))
 
   testName = do
@@ -58,9 +52,7 @@ testModule = do
       }
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Module
-
-    expectSuccess description result \(Module x) ->
+    expectSuccess description (readModuleJSON json) \(Module x) ->
       assertEqual x.moduleName (ModuleName "Main")
 
   -- |
@@ -81,9 +73,7 @@ testModule = do
       }
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Module
-
-    expectSuccess description result \(Module x) ->
+    expectSuccess description (readModuleJSON json) \(Module x) ->
       assertEqual x.moduleImports
         [ (ModuleName "Prim")
         ]
@@ -106,9 +96,7 @@ testModule = do
       }
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Module
-
-    expectSuccess description result \(Module x) ->
+    expectSuccess description (readModuleJSON json) \(Module x) ->
       assertEqual x.moduleExports
         [ (Ident "main")
         ]
@@ -131,9 +119,7 @@ testModule = do
       }
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity Module
-
-    expectSuccess description result \(Module x) ->
+    expectSuccess description (readModuleJSON json) \(Module x) ->
       assertEqual x.moduleForeign
         [ (Ident "log")
         ]
