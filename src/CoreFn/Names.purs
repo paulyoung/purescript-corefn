@@ -3,12 +3,14 @@ module CoreFn.Names
   , OpName(..)
   , ProperName(..)
   , Qualified(..)
+  , readModuleName
+  , readModuleNameJSON
   ) where
 
 import Prelude
 import Control.Error.Util (exceptNoteM)
 import Data.Array (init, last, null)
-import Data.Foreign (readString, ForeignError(..))
+import Data.Foreign (F, Foreign, ForeignError(..), parseJSON, readString)
 import Data.Foreign.Class (class IsForeign)
 import Data.Generic (class Generic, gShow)
 import Data.List.NonEmpty (singleton)
@@ -27,11 +29,14 @@ derive instance genericModuleName :: Generic ModuleName
 derive instance newtypeModuleName :: Newtype ModuleName _
 derive instance ordModuleName :: Ord ModuleName
 
-instance isForeignModuleName :: IsForeign ModuleName where
-  read value = ModuleName <$> readString value
-
 instance showModuleName :: Show ModuleName where
   show = gShow
+
+readModuleName :: Foreign -> F ModuleName
+readModuleName x = ModuleName <$> readString x
+
+readModuleNameJSON :: String -> F ModuleName
+readModuleNameJSON json = parseJSON json >>= readModuleName
 
 -- |
 -- Operator alias names.

@@ -1,22 +1,22 @@
 module CoreFn.Module
   ( Module(..)
+  , readModule
   , readModuleJSON
   ) where
 
 import Prelude
-import Data.Foreign.Keys as K
 import Data.Array as Array
+import Data.Foreign.Keys as K
 import Control.Error.Util (exceptNoteA)
-import Control.Monad.Except.Trans (ExceptT)
 import CoreFn.Ident (Ident)
-import CoreFn.Names (ModuleName(..))
-import Data.Foreign (F, Foreign, ForeignError(..), parseJSON)
+import CoreFn.Names (ModuleName(..), readModuleName)
+import Data.Foreign (F, Foreign, ForeignError(..), parseJSON, readArray)
 import Data.Foreign.Class (readProp)
 import Data.Foreign.Index (prop)
 import Data.Generic (gShow, class Generic)
 import Data.Identity (Identity(..))
 import Data.List.NonEmpty (singleton)
-import Data.List.Types (NonEmptyList)
+import Data.Traversable (sequence)
 
 -- |
 -- The CoreFn module representation
@@ -40,9 +40,13 @@ readModule x = do
   keys <- K.keys x
   key <- head keys
   value <- prop key x
+
   moduleExports <- readProp "exports" value
   moduleForeign <- readProp "foreign" value
-  moduleImports <- readProp "imports" value
+
+  importNames <- readProp "imports" value >>= readArray
+  moduleImports <- sequence (readModuleName <$> importNames)
+
   let moduleName = ModuleName key
 
   pure $ Module
@@ -54,7 +58,7 @@ readModule x = do
 
   where
 
-  head :: forall a. Array a -> ExceptT (NonEmptyList ForeignError) Identity a
+  head :: Array ~> F
   head y = exceptNoteA ((Identity <<< Array.head) y)
                         (singleton (ForeignError "Module name not found"))
 
