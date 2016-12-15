@@ -12,11 +12,11 @@ import CoreFn.Ident (Ident, readIdent)
 import CoreFn.Names (ModuleName(..), readModuleName)
 import Data.Foreign (F, Foreign, ForeignError(..), parseJSON, readArray)
 import Data.Foreign.Class (readProp)
-import Data.Foreign.Index (prop)
+import Data.Foreign.Index (class Index, prop)
 import Data.Generic (gShow, class Generic)
 import Data.Identity (Identity(..))
 import Data.List.NonEmpty (singleton)
-import Data.Traversable (sequence)
+import Data.Traversable (traverse)
 
 -- |
 -- The CoreFn module representation
@@ -41,14 +41,9 @@ readModule x = do
   key <- head keys
   value <- prop key x
 
-  exportNames <- readProp "exports" value >>= readArray
-  moduleExports <- sequence (readIdent <$> exportNames)
-
-  foreignNames <- readProp "foreign" value >>= readArray
-  moduleForeign <- sequence (readIdent <$> foreignNames)
-
-  importNames <- readProp "imports" value >>= readArray
-  moduleImports <- sequence (readModuleName <$> importNames)
+  moduleExports <- traverseArrayProp "exports" value readIdent
+  moduleForeign <- traverseArrayProp "foreign" value readIdent
+  moduleImports <- traverseArrayProp "imports" value readModuleName
 
   let moduleName = ModuleName key
 
@@ -64,6 +59,15 @@ readModule x = do
   head :: Array ~> F
   head y = exceptNoteA ((Identity <<< Array.head) y)
                         (singleton (ForeignError "Module name not found"))
+
+  traverseArrayProp
+    :: forall a i
+     . (Index i)
+    => i
+    -> Foreign
+    -> (Foreign -> F a)
+    -> F (Array a)
+  traverseArrayProp prop value f = readProp prop value >>= readArray >>= traverse f
 
 readModuleJSON :: String -> F Module
 readModuleJSON json = parseJSON json >>= readModule
