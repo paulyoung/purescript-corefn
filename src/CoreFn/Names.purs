@@ -7,6 +7,8 @@ module CoreFn.Names
   , readModuleNameJSON
   , readOpName
   , readOpNameJSON
+  , readProperName
+  , readProperNameJSON
   ) where
 
 import Prelude
@@ -70,11 +72,14 @@ derive instance genericProperName :: Generic ProperName
 derive instance newtypeProperName :: Newtype ProperName _
 derive instance ordProperName :: Ord ProperName
 
-instance isForeignProperName :: IsForeign ProperName where
-  read value = ProperName <$> readString value
-
 instance showProperName :: Show ProperName where
   show = gShow
+
+readProperName :: Foreign -> F ProperName
+readProperName x = ProperName <$> readString x
+
+readProperNameJSON :: String -> F ProperName
+readProperNameJSON json = parseJSON json >>= readProperName
 
 -- |
 -- A qualified name, i.e. a name with an optional module name
