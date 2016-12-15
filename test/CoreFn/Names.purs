@@ -7,7 +7,7 @@ import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
 import Control.Monad.Except.Trans (ExceptT)
-import CoreFn.Names (ModuleName(..), OpName(..), ProperName(..), Qualified(..), readModuleNameJSON)
+import CoreFn.Names (ModuleName(..), OpName(..), ProperName(..), Qualified(..), readModuleNameJSON, readOpNameJSON)
 import Data.Foreign (ForeignError)
 import Data.Foreign.Class (readJSON)
 import Data.Identity (Identity)
@@ -53,9 +53,7 @@ testNames = do
       "Control.Bind.bind"
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity OpName
-
-    expectSuccess description result \x ->
+    expectSuccess description (readOpNameJSON json) \x ->
       assertEqual x (OpName "Control.Bind.bind")
 
   -- |

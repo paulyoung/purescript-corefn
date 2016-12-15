@@ -5,6 +5,8 @@ module CoreFn.Names
   , Qualified(..)
   , readModuleName
   , readModuleNameJSON
+  , readOpName
+  , readOpNameJSON
   ) where
 
 import Prelude
@@ -48,11 +50,14 @@ derive instance genericOpName :: Generic OpName
 derive instance newtypeOpName :: Newtype OpName _
 derive instance ordOpName :: Ord OpName
 
-instance isForeignOpName :: IsForeign OpName where
-  read value = OpName <$> readString value
-
 instance showOpName :: Show OpName where
   show = gShow
+
+readOpName :: Foreign -> F OpName
+readOpName x = OpName <$> readString x
+
+readOpNameJSON :: String -> F OpName
+readOpNameJSON json = parseJSON json >>= readOpName
 
 -- |
 -- Proper name, i.e. capitalized names for e.g. module names, type/data
