@@ -9,13 +9,14 @@ module CoreFn.Names
   , readOpNameJSON
   , readProperName
   , readProperNameJSON
+  , readQualified
+  , readQualifiedJSON
   ) where
 
 import Prelude
 import Control.Error.Util (exceptNoteM)
 import Data.Array (init, last, null)
 import Data.Foreign (F, Foreign, ForeignError(..), parseJSON, readString)
-import Data.Foreign.Class (class IsForeign)
 import Data.Generic (class Generic, gShow)
 import Data.List.NonEmpty (singleton)
 import Data.List.Types (NonEmptyList)
@@ -90,30 +91,33 @@ derive instance eqQualified :: (Generic a, Eq a) => Eq (Qualified a)
 derive instance genericQualified :: (Generic a) => Generic (Qualified a)
 derive instance ordQualified :: (Generic a, Ord a) => Ord (Qualified a)
 
-instance isForeignQualified :: Newtype t String => IsForeign (Qualified t) where
-  read value = readString value >>= (flip exceptNoteM errors) <<< toQualified
-
-    where
-
-    arrayToMaybe :: forall a. Array a -> Maybe (Array a)
-    arrayToMaybe xs | null xs = Nothing
-                    | otherwise = Just xs
-
-    init' :: forall a. Array a -> Maybe (Array a)
-    init' xs = init xs >>= arrayToMaybe
-
-    delimiter = "."
-
-    toModuleName :: Array String -> ModuleName
-    toModuleName = ModuleName <<< (joinWith delimiter)
-
-    toQualified :: Newtype t String => String -> Maybe (Qualified t)
-    toQualified s = do
-      let parts = split (Pattern delimiter) s
-      Qualified (toModuleName <$> init' parts) <<< wrap <$> last parts
-
-    errors :: NonEmptyList ForeignError
-    errors = singleton (ForeignError "Error parsing qualified name")
-
 instance showQualified :: (Generic a, Show a) => Show (Qualified a) where
   show = gShow
+
+readQualified :: forall t. Newtype t String => Foreign -> F (Qualified t)
+readQualified x = readString x >>= (flip exceptNoteM errors) <<< toQualified
+
+  where
+
+  arrayToMaybe :: forall a. Array a -> Maybe (Array a)
+  arrayToMaybe xs | null xs = Nothing
+                  | otherwise = Just xs
+
+  init' :: forall a. Array a -> Maybe (Array a)
+  init' xs = init xs >>= arrayToMaybe
+
+  delimiter = "."
+
+  toModuleName :: Array String -> ModuleName
+  toModuleName = ModuleName <<< (joinWith delimiter)
+
+  toQualified :: Newtype t String => String -> Maybe (Qualified t)
+  toQualified s = do
+    let parts = split (Pattern delimiter) s
+    Qualified (toModuleName <$> init' parts) <<< wrap <$> last parts
+
+  errors :: NonEmptyList ForeignError
+  errors = singleton (ForeignError "Error parsing qualified name")
+
+readQualifiedJSON :: forall t. Newtype t String => String -> F (Qualified t)
+readQualifiedJSON json = parseJSON json >>= readQualified
