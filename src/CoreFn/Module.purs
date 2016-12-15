@@ -8,7 +8,7 @@ import Prelude
 import Data.Array as Array
 import Data.Foreign.Keys as K
 import Control.Error.Util (exceptNoteA)
-import CoreFn.Ident (Ident)
+import CoreFn.Ident (Ident, readIdent)
 import CoreFn.Names (ModuleName(..), readModuleName)
 import Data.Foreign (F, Foreign, ForeignError(..), parseJSON, readArray)
 import Data.Foreign.Class (readProp)
@@ -41,8 +41,11 @@ readModule x = do
   key <- head keys
   value <- prop key x
 
-  moduleExports <- readProp "exports" value
-  moduleForeign <- readProp "foreign" value
+  exportNames <- readProp "exports" value >>= readArray
+  moduleExports <- sequence (readIdent <$> exportNames)
+
+  foreignNames <- readProp "foreign" value >>= readArray
+  moduleForeign <- sequence (readIdent <$> foreignNames)
 
   importNames <- readProp "imports" value >>= readArray
   moduleImports <- sequence (readModuleName <$> importNames)
