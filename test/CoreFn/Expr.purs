@@ -7,14 +7,10 @@ import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
-import Control.Monad.Except.Trans (ExceptT)
-import CoreFn.Expr (Expr(..), Literal(..))
+import CoreFn.Expr (Expr(..), Literal(..), readExprJSON, readLiteralJSON)
 import Data.Either (Either(..))
-import Data.Foreign (ForeignError(..))
-import Data.Foreign.Class (readJSON)
-import Data.Identity (Identity)
+import Data.Foreign (ForeignError(..), toForeign)
 import Data.List.NonEmpty (singleton)
-import Data.List.Types (NonEmptyList)
 import Data.Tuple (Tuple(..))
 import Test.Util (assertEqual, expectFailure, expectSuccess)
 
@@ -47,9 +43,7 @@ testLiterals = do
       ]
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity (Literal String)
-
-    expectSuccess description result \x ->
+    expectSuccess description (readLiteralJSON json) \x ->
       assertEqual x (NumericLiteral (Left 42))
 
   -- |
@@ -65,9 +59,7 @@ testLiterals = do
       ]
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity (Literal String)
-
-    expectSuccess description result \x ->
+    expectSuccess description (readLiteralJSON json) \x ->
       assertEqual x (NumericLiteral (Right 3.14))
 
   -- |
@@ -83,9 +75,7 @@ testLiterals = do
       ]
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity (Literal String)
-
-    expectSuccess description result \x ->
+    expectSuccess description (readLiteralJSON json) \x ->
       assertEqual x (StringLiteral "Hello World!")
 
   -- |
@@ -101,9 +91,7 @@ testLiterals = do
       ]
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity (Literal String)
-
-    expectSuccess description result \x ->
+    expectSuccess description (readLiteralJSON json) \x ->
       assertEqual x (CharLiteral 'a')
 
   -- |
@@ -119,9 +107,7 @@ testLiterals = do
       ]
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity (Literal String)
-
-    expectSuccess description result \x ->
+    expectSuccess description (readLiteralJSON json) \x ->
       assertEqual x (BooleanLiteral true)
 
   -- |
@@ -145,11 +131,9 @@ testLiterals = do
       ]
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity (Literal (Expr Unit))
-
-    expectSuccess description result \x ->
+    expectSuccess description (readLiteralJSON json) \x ->
       assertEqual x $ ArrayLiteral
-        [ Literal unit (StringLiteral "Hello world!")
+        [ Literal (toForeign unit) (StringLiteral "Hello world!")
         ]
 
   -- |
@@ -173,11 +157,9 @@ testLiterals = do
       ]
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity (Literal (Expr Unit))
-
-    expectSuccess description result \x ->
+    expectSuccess description (readLiteralJSON json) \x ->
       assertEqual x $ ObjectLiteral
-        [ Tuple "hello" (Literal unit (StringLiteral "world!"))
+        [ Tuple "hello" (Literal (toForeign unit) (StringLiteral "world!"))
         ]
 
   -- |
@@ -193,9 +175,7 @@ testLiterals = do
       ]
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity (Literal String)
-
-    expectFailure description result \x ->
+    expectFailure description (readLiteralJSON json) \x ->
       assertEqual x (singleton (ForeignError "Unknown literal: SomeLiteral"))
 
 testExpr :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
@@ -224,10 +204,8 @@ testExpr = do
       ]
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity (Expr Unit)
-
-    expectSuccess description result \x ->
-      assertEqual x (Literal unit (StringLiteral "Hello world!"))
+    expectSuccess description (readExprJSON json) \x ->
+      assertEqual x (Literal (toForeign unit) (StringLiteral "Hello world!"))
 
   -- |
   -- Unknown
@@ -248,7 +226,5 @@ testExpr = do
       ]
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity (Expr Unit)
-
-    expectFailure description result \x ->
+    expectFailure description (readExprJSON json) \x ->
       assertEqual x (singleton (ForeignError "Unknown expression: SomeExpression"))

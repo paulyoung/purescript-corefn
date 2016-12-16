@@ -4,19 +4,20 @@
 module CoreFn.Expr
   ( Expr(..)
   , Literal(..)
+  , readExpr
+  , readExprJSON
+  , readLiteral
+  , readLiteralJSON
   ) where
 
 import Prelude
-import Control.Monad.Except.Trans (ExceptT)
-import CoreFn.Util (foreignError, mapCoreFnValue, readCoreFnLabel, readCoreFnValue)
-import Data.Either (Either(..))
-import Data.Foreign (Foreign, ForeignError)
-import Data.Foreign.Class (class IsForeign, read, readProp)
 import Data.Foreign.Keys as K
-import Data.Generic (class Generic, gShow)
-import Data.Identity (Identity)
-import Data.List.Types (NonEmptyList)
-import Data.Traversable (sequence)
+import CoreFn.Util (foreignError, readCoreFnLabel, readCoreFnValue)
+import Data.Either (Either(..), either)
+import Data.Foreign (F, Foreign, parseJSON, readArray, readBoolean, readChar, readInt, readNumber, readString, toForeign)
+import Data.Foreign.Index (prop)
+import Data.Generic (class Generic)
+import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
 
 -- |
@@ -49,54 +50,61 @@ data Literal a
   --
   | ObjectLiteral (Array (Tuple String a))
 
-derive instance eqLiteral :: (Generic a, Eq a) => Eq (Literal a)
+derive instance eqLiteral :: Eq a => Eq (Literal a)
 derive instance genericLiteral :: Generic a => Generic (Literal a)
-derive instance ordLiteral :: (Generic a, Ord a) => Ord (Literal a)
+derive instance ordLiteral :: Ord a => Ord (Literal a)
 
-instance isForeignLiteral :: (IsForeign a) => IsForeign (Literal a) where
-  read value = readCoreFnLabel value >>= flip readLiteral value
+instance showLiteral :: Show a => Show (Literal a) where
+  show (NumericLiteral e) = "(NumericLiteral " <> either show show e <> ")"
+  show (StringLiteral s) = "(StringLiteral " <> show s <> ")"
+  show (CharLiteral c) = "(CharLiteral " <> show c <> ")"
+  show (BooleanLiteral b) = "(BooleanLiteral " <> show b <> ")"
+  show (ArrayLiteral a) = "(ArrayLiteral " <> show a <> ")"
+  show (ObjectLiteral o) = "(ObjectLiteral" <> show o <> ")"
 
-    where
+readLiteral :: Foreign -> F (Literal (Expr Foreign))
+readLiteral x = do
+  label <- readCoreFnLabel x >>= readString
+  readLiteral' label x
 
-    readValues
-      :: forall b
-       . (IsForeign b)
-      => Array Foreign
-      -> ExceptT (NonEmptyList ForeignError) Identity (Array b)
-    readValues = sequence <<< map read
+  where
 
-    readPair
-      :: Foreign
-      -> String
-      -> ExceptT (NonEmptyList ForeignError) Identity (Tuple String a)
-    readPair obj key = Tuple key <$> readProp key obj
+  readValues :: Array Foreign -> F (Array (Expr Foreign))
+  readValues = traverse readExpr
 
-    readPairs
-      :: Foreign
-      -> Array String
-      -> ExceptT (NonEmptyList ForeignError) Identity (Array (Tuple String a))
-    readPairs obj = sequence <<< (map <<< readPair) obj
+  readPair :: Foreign -> String -> F (Tuple String (Expr Foreign))
+  readPair obj key = Tuple key <$> (prop key obj >>= readExpr)
 
-    readLiteral
-      :: String
-      -> Foreign
-      -> ExceptT (NonEmptyList ForeignError) Identity (Literal a)
-    readLiteral "IntLiteral" = mapCoreFnValue (NumericLiteral <<< Left)
-    readLiteral "NumberLiteral" = mapCoreFnValue (NumericLiteral <<< Right)
-    readLiteral "StringLiteral" = mapCoreFnValue StringLiteral
-    readLiteral "CharLiteral" = mapCoreFnValue CharLiteral
-    readLiteral "BooleanLiteral" = mapCoreFnValue BooleanLiteral
-    readLiteral "ArrayLiteral" = \v -> do
-      array <- readCoreFnValue v
-      ArrayLiteral <$> readValues array
-    readLiteral "ObjectLiteral" = \v -> do
-      obj <- readCoreFnValue v
-      keys <- K.keys obj
-      ObjectLiteral <$> readPairs obj keys
-    readLiteral label = \_ -> foreignError $ "Unknown literal: " <> label
+  readPairs :: Foreign -> Array String -> F (Array (Tuple String (Expr Foreign)))
+  readPairs obj = sequence <<< (map <<< readPair) obj
 
-instance showLiteral :: (Generic a, Show a) => Show (Literal a) where
-  show = gShow
+  readLiteral' :: String -> Foreign -> F (Literal (Expr Foreign))
+  readLiteral' "IntLiteral" v = do
+    value <- readCoreFnValue v
+    NumericLiteral <$> Left <$> readInt value
+  readLiteral' "NumberLiteral" v = do
+    value <- readCoreFnValue v
+    NumericLiteral <$> Right <$> readNumber value
+  readLiteral' "StringLiteral" v = do
+    value <- readCoreFnValue v
+    StringLiteral <$> readString value
+  readLiteral' "CharLiteral" v = do
+    value <- readCoreFnValue v
+    CharLiteral <$> readChar value
+  readLiteral' "BooleanLiteral" v = do
+    value <- readCoreFnValue v
+    BooleanLiteral <$> readBoolean value
+  readLiteral' "ArrayLiteral" v = do
+    array <- readCoreFnValue v >>= readArray
+    ArrayLiteral <$> readValues array
+  readLiteral' "ObjectLiteral" v = do
+    obj <- readCoreFnValue v
+    keys <- K.keys obj
+    ObjectLiteral <$> readPairs obj keys
+  readLiteral' label _ = foreignError $ "Unknown literal: " <> label
+
+readLiteralJSON :: String -> F (Literal (Expr Foreign))
+readLiteralJSON json = parseJSON json >>= readLiteral
 
 -- |
 -- Data type for expressions and terms
@@ -107,21 +115,26 @@ data Expr a
   --
   = Literal a (Literal (Expr a))
 
-derive instance eqExpr :: (Generic a, Eq a) => Eq (Expr a)
 derive instance genericExpr :: Generic a => Generic (Expr a)
-derive instance ordExpr :: (Generic a, Ord a) => Ord (Expr a)
+derive instance ordExpr :: Ord a => Ord (Expr a)
 
-instance isForeignExpr :: IsForeign (Expr Unit) where
-  read value = readCoreFnLabel value >>= flip readExpr value
+instance eqExpr :: Eq (Expr a) where
+  eq (Literal _ l1) (Literal _ l2) = l1 == l2
 
-    where
+instance showExpr :: Show (Expr a) where
+  show (Literal _ l) = "(Literal " <> "_" <> " " <> show l <> ")"
 
-    readExpr
-      :: String
-      -> Foreign
-      -> ExceptT (NonEmptyList ForeignError) Identity (Expr Unit)
-    readExpr "Literal" = mapCoreFnValue (Literal unit)
-    readExpr label = \_ -> foreignError $ "Unknown expression: " <> label
+readExpr :: Foreign -> F (Expr Foreign)
+readExpr x = do
+  label <- readCoreFnLabel x >>= readString
+  value <- readCoreFnValue x
+  readExpr' label value
 
-instance showExpr :: (Generic a, Show a) => Show (Expr a) where
-  show = gShow
+  where
+
+  readExpr' :: String -> Foreign -> F (Expr Foreign)
+  readExpr' "Literal" f = Literal (toForeign unit) <$> readLiteral f
+  readExpr' label _ = foreignError $ "Unknown expression: " <> label
+
+readExprJSON :: String -> F (Expr Foreign)
+readExprJSON json = parseJSON json >>= readExpr
