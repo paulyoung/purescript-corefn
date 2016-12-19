@@ -12,6 +12,8 @@ module CoreFn.Expr
 
 import Prelude
 import Data.Foreign.Keys as K
+import CoreFn.Ident (Ident(..))
+import CoreFn.Names (Qualified, readQualified)
 import CoreFn.Util (foreignError, readCoreFnLabel, readCoreFnValue)
 import Data.Either (Either(..), either)
 import Data.Foreign (F, Foreign, parseJSON, readArray, readBoolean, readChar, readInt, readNumber, readString, toForeign)
@@ -114,15 +116,22 @@ data Expr a
   -- A literal value
   --
   = Literal a (Literal (Expr a))
+  -- |
+  -- Variable
+  --
+  | Var a (Qualified Ident)
 
 derive instance genericExpr :: Generic a => Generic (Expr a)
 derive instance ordExpr :: Ord a => Ord (Expr a)
 
 instance eqExpr :: Eq (Expr a) where
   eq (Literal _ l1) (Literal _ l2) = l1 == l2
+  eq (Var _ v1) (Var _ v2) = v1 == v2
+  eq _ _ = false
 
 instance showExpr :: Show (Expr a) where
   show (Literal _ l) = "(Literal " <> "_" <> " " <> show l <> ")"
+  show (Var _ v) = "(Var " <> "_" <> " " <> show v <> ")"
 
 readExpr :: Foreign -> F (Expr Foreign)
 readExpr x = do
@@ -134,6 +143,7 @@ readExpr x = do
 
   readExpr' :: String -> Foreign -> F (Expr Foreign)
   readExpr' "Literal" f = Literal (toForeign unit) <$> readLiteral f
+  readExpr' "Var" f = Var (toForeign unit) <$> readQualified Ident f
   readExpr' label _ = foreignError $ "Unknown expression: " <> label
 
 readExprJSON :: String -> F (Expr Foreign)
