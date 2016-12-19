@@ -14,9 +14,10 @@ import Prelude
 import Data.Foreign.Keys as K
 import CoreFn.Ident (Ident(..))
 import CoreFn.Names (Qualified, readQualified)
-import CoreFn.Util (foreignError, readCoreFnLabel, readCoreFnValue)
+import CoreFn.Util (foreignError)
 import Data.Either (Either(..), either)
 import Data.Foreign (F, Foreign, parseJSON, readArray, readBoolean, readChar, readInt, readNumber, readString, toForeign)
+import Data.Foreign.Class (readProp)
 import Data.Foreign.Index (prop)
 import Data.Generic (class Generic)
 import Data.Traversable (sequence, traverse)
@@ -66,7 +67,7 @@ instance showLiteral :: Show a => Show (Literal a) where
 
 readLiteral :: Foreign -> F (Literal (Expr Foreign))
 readLiteral x = do
-  label <- readCoreFnLabel x >>= readString
+  label <- readProp 0 x >>= readString
   readLiteral' label x
 
   where
@@ -82,25 +83,25 @@ readLiteral x = do
 
   readLiteral' :: String -> Foreign -> F (Literal (Expr Foreign))
   readLiteral' "IntLiteral" v = do
-    value <- readCoreFnValue v
+    value <- readProp 1 v
     NumericLiteral <$> Left <$> readInt value
   readLiteral' "NumberLiteral" v = do
-    value <- readCoreFnValue v
+    value <- readProp 1 v
     NumericLiteral <$> Right <$> readNumber value
   readLiteral' "StringLiteral" v = do
-    value <- readCoreFnValue v
+    value <- readProp 1 v
     StringLiteral <$> readString value
   readLiteral' "CharLiteral" v = do
-    value <- readCoreFnValue v
+    value <- readProp 1 v
     CharLiteral <$> readChar value
   readLiteral' "BooleanLiteral" v = do
-    value <- readCoreFnValue v
+    value <- readProp 1 v
     BooleanLiteral <$> readBoolean value
   readLiteral' "ArrayLiteral" v = do
-    array <- readCoreFnValue v >>= readArray
+    array <- readProp 1 v >>= readArray
     ArrayLiteral <$> readValues array
   readLiteral' "ObjectLiteral" v = do
-    obj <- readCoreFnValue v
+    obj <- readProp 1 v
     keys <- K.keys obj
     ObjectLiteral <$> readPairs obj keys
   readLiteral' label _ = foreignError $ "Unknown literal: " <> label
@@ -117,6 +118,10 @@ data Expr a
   --
   = Literal a (Literal (Expr a))
   -- |
+  -- Function application
+  --
+  | App (Expr a) (Expr a)
+  -- |
   -- Variable
   --
   | Var a (Qualified Ident)
@@ -126,24 +131,33 @@ derive instance ordExpr :: Ord a => Ord (Expr a)
 
 instance eqExpr :: Eq (Expr a) where
   eq (Literal _ l1) (Literal _ l2) = l1 == l2
+  eq (App x1 y1) (App x2 y2) = x1 == x2 && y1 == y2
   eq (Var _ v1) (Var _ v2) = v1 == v2
   eq _ _ = false
 
 instance showExpr :: Show (Expr a) where
   show (Literal _ l) = "(Literal " <> "_" <> " " <> show l <> ")"
+  show (App e1 e2) = "(App" <> show e1 <> " " <> show e2 <> ")"
   show (Var _ v) = "(Var " <> "_" <> " " <> show v <> ")"
 
 readExpr :: Foreign -> F (Expr Foreign)
 readExpr x = do
-  label <- readCoreFnLabel x >>= readString
-  value <- readCoreFnValue x
-  readExpr' label value
+  label <- readProp 0 x >>= readString
+  readExpr' label x
 
   where
 
   readExpr' :: String -> Foreign -> F (Expr Foreign)
-  readExpr' "Literal" f = Literal (toForeign unit) <$> readLiteral f
-  readExpr' "Var" f = Var (toForeign unit) <$> readQualified Ident f
+  readExpr' "Literal" y = do
+    value <- readProp 1 y
+    Literal (toForeign unit) <$> readLiteral value
+  readExpr' "App" y = do
+    expr1 <- readProp 1 y
+    expr2 <- readProp 2 y
+    App <$> readExpr expr1 <*> readExpr expr2
+  readExpr' "Var" y = do
+    value <- readProp 1 y
+    Var (toForeign unit) <$> readQualified Ident value
   readExpr' label _ = foreignError $ "Unknown expression: " <> label
 
 readExprJSON :: String -> F (Expr Foreign)
