@@ -21,7 +21,7 @@ import Data.Generic (class Generic, gShow)
 import Data.List.NonEmpty (singleton)
 import Data.List.Types (NonEmptyList)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, wrap)
+import Data.Newtype (class Newtype)
 import Data.String (Pattern(..), joinWith, split)
 
 -- |
@@ -94,16 +94,16 @@ derive instance ordQualified :: (Generic a, Ord a) => Ord (Qualified a)
 instance showQualified :: (Generic a, Show a) => Show (Qualified a) where
   show = gShow
 
-readQualified :: forall t. Newtype t String => Foreign -> F (Qualified t)
-readQualified x = readString x >>= (flip exceptNoteM errors) <<< toQualified
+readQualified :: forall a. (String -> a) -> Foreign -> F (Qualified a)
+readQualified ctor x = readString x >>= (flip exceptNoteM errors) <<< toQualified
 
   where
 
-  arrayToMaybe :: forall a. Array a -> Maybe (Array a)
+  arrayToMaybe :: forall b. Array b -> Maybe (Array b)
   arrayToMaybe xs | null xs = Nothing
                   | otherwise = Just xs
 
-  init' :: forall a. Array a -> Maybe (Array a)
+  init' :: forall b. Array b -> Maybe (Array b)
   init' xs = init xs >>= arrayToMaybe
 
   delimiter = "."
@@ -111,13 +111,15 @@ readQualified x = readString x >>= (flip exceptNoteM errors) <<< toQualified
   toModuleName :: Array String -> ModuleName
   toModuleName = ModuleName <<< (joinWith delimiter)
 
-  toQualified :: Newtype t String => String -> Maybe (Qualified t)
+  toQualified :: String -> Maybe (Qualified a)
   toQualified s = do
     let parts = split (Pattern delimiter) s
-    Qualified (toModuleName <$> init' parts) <<< wrap <$> last parts
+    lastPart <- last parts
+    let moduleName = toModuleName <$> init' parts
+    Just $ Qualified moduleName (ctor lastPart)
 
   errors :: NonEmptyList ForeignError
   errors = singleton (ForeignError "Error parsing qualified name")
 
-readQualifiedJSON :: forall t. Newtype t String => String -> F (Qualified t)
-readQualifiedJSON json = parseJSON json >>= readQualified
+readQualifiedJSON :: forall a. (String -> a) -> String -> F (Qualified a)
+readQualifiedJSON ctor json = parseJSON json >>= readQualified ctor

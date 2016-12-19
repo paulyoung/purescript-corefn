@@ -6,6 +6,7 @@ import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
+import CoreFn.Ident (Ident(..))
 import CoreFn.Names (ModuleName(..), OpName(..), ProperName(..), Qualified(..), readModuleNameJSON, readOpNameJSON, readProperNameJSON, readQualifiedJSON)
 import Data.Maybe (Maybe(..))
 import Test.Util (assertEqual, expectSuccess)
@@ -18,6 +19,8 @@ testNames = do
   testModuleName
   testOpName
   testProperName
+  testQualifiedIdentWithoutModuleName
+  testQualifiedIdentWithModuleName
   testQualifiedOpNameWithoutModuleName
   testQualifiedOpNameWithModuleName
   testQualifiedProperNameWithoutModuleName
@@ -67,6 +70,28 @@ testNames = do
   -- |
   -- Qualified
   --
+  testQualifiedIdentWithoutModuleName = do
+    let description = "Qualified Ident without module name from JSON results in success"
+
+    let json = """
+      "log"
+    """
+
+    expectSuccess description (readQualifiedJSON Ident json) \(Qualified x y) -> do
+      assertEqual x Nothing
+      assertEqual y (Ident "log")
+
+  testQualifiedIdentWithModuleName = do
+    let description = "Qualified Ident with module name from JSON results in success"
+
+    let json = """
+      "Control.Monad.Console.log"
+    """
+
+    expectSuccess description (readQualifiedJSON Ident json) \(Qualified x y) -> do
+      assertEqual x (Just $ ModuleName "Control.Monad.Console")
+      assertEqual y (Ident "log")
+
   testQualifiedOpNameWithoutModuleName = do
     let description = "Qualified OpName without module name from JSON results in success"
 
@@ -74,7 +99,7 @@ testNames = do
       "bind"
     """
 
-    expectSuccess description (readQualifiedJSON json) \(Qualified x y) -> do
+    expectSuccess description (readQualifiedJSON OpName json) \(Qualified x y) -> do
       assertEqual x Nothing
       assertEqual y (OpName "bind")
 
@@ -85,7 +110,7 @@ testNames = do
       "Control.Bind.bind"
     """
 
-    expectSuccess description (readQualifiedJSON json) \(Qualified x y) -> do
+    expectSuccess description (readQualifiedJSON OpName json) \(Qualified x y) -> do
       assertEqual x (Just $ ModuleName "Control.Bind")
       assertEqual y (OpName "bind")
 
@@ -96,7 +121,7 @@ testNames = do
       "Nothing"
     """
 
-    expectSuccess description (readQualifiedJSON json) \(Qualified x y) -> do
+    expectSuccess description (readQualifiedJSON ProperName json) \(Qualified x y) -> do
       assertEqual x Nothing
       assertEqual y (ProperName "Nothing")
 
@@ -107,6 +132,6 @@ testNames = do
       "Data.Maybe.Nothing"
     """
 
-    expectSuccess description (readQualifiedJSON json) \(Qualified x y) -> do
+    expectSuccess description (readQualifiedJSON ProperName json) \(Qualified x y) -> do
       assertEqual x (Just $ ModuleName "Data.Maybe")
       assertEqual y (ProperName "Nothing")
