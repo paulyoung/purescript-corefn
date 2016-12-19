@@ -8,9 +8,12 @@ import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
 import CoreFn.Expr (Expr(..), Literal(..), readExprJSON, readLiteralJSON)
+import CoreFn.Ident (Ident(..))
+import CoreFn.Names (ModuleName(..), Qualified(..))
 import Data.Either (Either(..))
 import Data.Foreign (ForeignError(..), toForeign)
 import Data.List.NonEmpty (singleton)
+import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Test.Util (assertEqual, expectFailure, expectSuccess)
 
@@ -184,6 +187,7 @@ testExpr = do
   log "Test Expr"
 
   testLiteralExpr
+  testVarExpr
   testUnknownExpr
 
   where
@@ -206,6 +210,24 @@ testExpr = do
 
     expectSuccess description (readExprJSON json) \x ->
       assertEqual x (Literal (toForeign unit) (StringLiteral "Hello world!"))
+
+  -- |
+  -- Var
+  --
+  testVarExpr = do
+    let description = "Var from JSON results in success"
+
+    let json = """
+      [
+        "Var",
+        "Control.Monad.Eff.Console.log"
+      ]
+    """
+
+    expectSuccess description (readExprJSON json) \x -> do
+      let moduleName = Just (ModuleName "Control.Monad.Eff.Console")
+      let qualified = Qualified moduleName (Ident "log")
+      assertEqual x (Var (toForeign unit) qualified)
 
   -- |
   -- Unknown
