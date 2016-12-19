@@ -6,12 +6,7 @@ import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
-import Control.Monad.Except.Trans (ExceptT)
-import CoreFn.Names (ModuleName(..), OpName(..), ProperName(..), Qualified(..))
-import Data.Foreign (ForeignError)
-import Data.Foreign.Class (readJSON)
-import Data.Identity (Identity)
-import Data.List.Types (NonEmptyList)
+import CoreFn.Names (ModuleName(..), OpName(..), ProperName(..), Qualified(..), readModuleNameJSON, readOpNameJSON, readProperNameJSON, readQualifiedJSON)
 import Data.Maybe (Maybe(..))
 import Test.Util (assertEqual, expectSuccess)
 
@@ -40,9 +35,7 @@ testNames = do
       "Main"
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity ModuleName
-
-    expectSuccess description result \x ->
+    expectSuccess description (readModuleNameJSON json) \x ->
       assertEqual x (ModuleName "Main")
 
   -- |
@@ -55,9 +48,7 @@ testNames = do
       "Control.Bind.bind"
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity OpName
-
-    expectSuccess description result \x ->
+    expectSuccess description (readOpNameJSON json) \x ->
       assertEqual x (OpName "Control.Bind.bind")
 
   -- |
@@ -70,9 +61,7 @@ testNames = do
       "Nothing"
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity ProperName
-
-    expectSuccess description result \x ->
+    expectSuccess description (readProperNameJSON json) \x ->
       assertEqual x (ProperName "Nothing")
 
   -- |
@@ -85,9 +74,7 @@ testNames = do
       "bind"
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity (Qualified OpName)
-
-    expectSuccess description result \(Qualified x y) -> do
+    expectSuccess description (readQualifiedJSON json) \(Qualified x y) -> do
       assertEqual x Nothing
       assertEqual y (OpName "bind")
 
@@ -98,9 +85,7 @@ testNames = do
       "Control.Bind.bind"
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity (Qualified OpName)
-
-    expectSuccess description result \(Qualified x y) -> do
+    expectSuccess description (readQualifiedJSON json) \(Qualified x y) -> do
       assertEqual x (Just $ ModuleName "Control.Bind")
       assertEqual y (OpName "bind")
 
@@ -111,9 +96,7 @@ testNames = do
       "Nothing"
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity (Qualified ProperName)
-
-    expectSuccess description result \(Qualified x y) -> do
+    expectSuccess description (readQualifiedJSON json) \(Qualified x y) -> do
       assertEqual x Nothing
       assertEqual y (ProperName "Nothing")
 
@@ -124,8 +107,6 @@ testNames = do
       "Data.Maybe.Nothing"
     """
 
-    let result = readJSON json :: ExceptT (NonEmptyList ForeignError) Identity (Qualified ProperName)
-
-    expectSuccess description result \(Qualified x y) -> do
+    expectSuccess description (readQualifiedJSON json) \(Qualified x y) -> do
       assertEqual x (Just $ ModuleName "Data.Maybe")
       assertEqual y (ProperName "Nothing")

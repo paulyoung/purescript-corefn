@@ -1,21 +1,22 @@
 module CoreFn.Module
   ( Module(..)
+  , readModule
+  , readModuleJSON
   ) where
 
 import Prelude
 import Data.Array as Array
+import Data.Foreign.Keys as K
 import Control.Error.Util (exceptNoteA)
-import Control.Monad.Except.Trans (ExceptT)
-import CoreFn.Ident (Ident)
-import CoreFn.Names (ModuleName(..))
-import Data.Foreign (Foreign, ForeignError(..))
-import Data.Foreign.Class (readProp, class IsForeign)
-import Data.Foreign.Index (prop)
-import Data.Foreign.Keys (keys)
+import CoreFn.Ident (Ident, readIdent)
+import CoreFn.Names (ModuleName(..), readModuleName)
+import Data.Foreign (F, Foreign, ForeignError(..), parseJSON, readArray)
+import Data.Foreign.Class (readProp)
+import Data.Foreign.Index (class Index, prop)
 import Data.Generic (gShow, class Generic)
 import Data.Identity (Identity(..))
 import Data.List.NonEmpty (singleton)
-import Data.List.Types (NonEmptyList)
+import Data.Traversable (traverse)
 
 -- |
 -- The CoreFn module representation
@@ -31,30 +32,42 @@ derive instance eqModule :: Eq Module
 derive instance genericModule :: Generic Module
 derive instance ordModule :: Ord Module
 
-instance isForeignModule :: IsForeign Module where
-  read x = do
-    let key = firstKey x
-    value <- key >>= (flip prop) x
-    moduleExports <- readProp "exports" value
-    moduleForeign <- readProp "foreign" value
-    moduleImports <- readProp "imports" value
-    moduleName <- ModuleName <$> key
-
-    pure $ Module
-      { moduleExports: moduleExports
-      , moduleForeign: moduleForeign
-      , moduleImports: moduleImports
-      , moduleName: moduleName
-      }
-
-    where
-
-    head :: forall a. Array a -> ExceptT (NonEmptyList ForeignError) Identity a
-    head y = exceptNoteA ((Identity <<< Array.head) y)
-                         (singleton (ForeignError "Module name not found"))
-
-    firstKey :: Foreign -> ExceptT (NonEmptyList ForeignError) Identity String
-    firstKey y = keys y >>= head
-
 instance showModule :: Show Module where
   show = gShow
+
+readModule :: Foreign -> F Module
+readModule x = do
+  keys <- K.keys x
+  key <- head keys
+  value <- prop key x
+
+  moduleExports <- traverseArrayProp "exports" value readIdent
+  moduleForeign <- traverseArrayProp "foreign" value readIdent
+  moduleImports <- traverseArrayProp "imports" value readModuleName
+
+  let moduleName = ModuleName key
+
+  pure $ Module
+    { moduleExports: moduleExports
+    , moduleForeign: moduleForeign
+    , moduleImports: moduleImports
+    , moduleName: moduleName
+    }
+
+  where
+
+  head :: Array ~> F
+  head y = exceptNoteA ((Identity <<< Array.head) y)
+                        (singleton (ForeignError "Module name not found"))
+
+  traverseArrayProp
+    :: forall a i
+     . (Index i)
+    => i
+    -> Foreign
+    -> (Foreign -> F a)
+    -> F (Array a)
+  traverseArrayProp prop value f = readProp prop value >>= readArray >>= traverse f
+
+readModuleJSON :: String -> F Module
+readModuleJSON json = parseJSON json >>= readModule

@@ -3,11 +3,12 @@
 --
 module CoreFn.Ident
   ( Ident(..)
+  , readIdent
+  , readIdentJSON
   ) where
 
 import Prelude
-import Data.Foreign (readString)
-import Data.Foreign.Class (class IsForeign)
+import Data.Foreign (F, Foreign, parseJSON, readString)
 import Data.Generic (gShow, class Generic)
 import Data.Maybe (Maybe)
 
@@ -25,8 +26,11 @@ derive instance eqIdent :: Eq Ident
 derive instance genericIdent :: Generic Ident
 derive instance ordIdent :: Ord Ident
 
-instance isForeignIdent :: IsForeign Ident where
-  read value = Ident <$> readString value
-
 instance showIdent :: Show Ident where
   show = gShow
+
+readIdent :: Foreign -> F Ident
+readIdent x = Ident <$> readString x
+
+readIdentJSON :: String -> F Ident
+readIdentJSON json = parseJSON json >>= readIdent
