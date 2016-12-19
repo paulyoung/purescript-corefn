@@ -85,11 +85,11 @@ testNames = do
     let description = "Qualified Ident with module name from JSON results in success"
 
     let json = """
-      "Control.Monad.Console.log"
+      "Control.Monad.Console.Eff.log"
     """
 
     expectSuccess description (readQualifiedJSON Ident json) \(Qualified x y) -> do
-      assertEqual x (Just $ ModuleName "Control.Monad.Console")
+      assertEqual x (Just $ ModuleName "Control.Monad.Console.Eff")
       assertEqual y (Ident "log")
 
   testQualifiedOpNameWithoutModuleName = do
