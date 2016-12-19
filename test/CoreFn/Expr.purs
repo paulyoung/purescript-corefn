@@ -192,7 +192,7 @@ testExpr = do
   -- Literal
   --
   testLiteralExpr = do
-    let description = "StringLiteral from JSON results in success"
+    let description = "Literal from JSON results in success"
 
     let json = """
       [
