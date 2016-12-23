@@ -6,11 +6,13 @@ import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
+import CoreFn.Expr (Bind(..), Expr(..), Literal(..))
 import CoreFn.Ident (Ident(..))
 import CoreFn.Module (Module(..), readModuleJSON)
-import CoreFn.Names (ModuleName(..))
+import CoreFn.Names (ModuleName(..), Qualified(..))
 import Data.Foreign (ForeignError(..))
 import Data.List.NonEmpty (singleton)
+import Data.Maybe (Maybe(..))
 import Test.Util (assertEqual, expectFailure, expectSuccess)
 
 testModule :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
@@ -22,6 +24,7 @@ testModule = do
   testName
   testImports
   testExports
+  testDecls
   testForeign
 
   where
@@ -47,6 +50,7 @@ testModule = do
         "Main": {
           "imports": [],
           "exports": [],
+          "decls": [],
           "foreign": []
         }
       }
@@ -68,6 +72,7 @@ testModule = do
             "Prim"
           ],
           "exports": [],
+          "decls": [],
           "foreign": []
         }
       }
@@ -75,7 +80,7 @@ testModule = do
 
     expectSuccess description (readModuleJSON json) \(Module x) ->
       assertEqual x.moduleImports
-        [ (ModuleName "Prim")
+        [ ModuleName "Prim"
         ]
 
   -- |
@@ -91,6 +96,7 @@ testModule = do
           "exports": [
             "main"
           ],
+          "decls": [],
           "foreign": []
         }
       }
@@ -98,8 +104,54 @@ testModule = do
 
     expectSuccess description (readModuleJSON json) \(Module x) ->
       assertEqual x.moduleExports
-        [ (Ident "main")
+        [ Ident "main"
         ]
+
+  -- |
+  -- Declarations
+  --
+  testDecls = do
+    let description = "Module declarations from JSON result in success"
+
+    let json = """
+      {
+        "Main": {
+          "imports": [],
+          "exports": [
+            "main"
+          ],
+          "decls": [
+            {
+              "main": [
+                "App",
+                [
+                  "Var",
+                  "Control.Monad.Eff.Console.log"
+                ],
+                [
+                  "Literal",
+                  [
+                    "StringLiteral",
+                    "Hello world!"
+                  ]
+                ]
+              ]
+            }
+          ],
+          "foreign": []
+        }
+      }
+    """
+
+    expectSuccess description (readModuleJSON json) \(Module x) -> do
+      let ident = Ident "main"
+      let moduleName = Just (ModuleName "Control.Monad.Eff.Console")
+      let qualified = Qualified moduleName (Ident "log")
+      let var = Var unit qualified
+      let literal = Literal unit (StringLiteral "Hello world!")
+      let expr = App unit var literal
+      let decl = NonRec unit ident expr
+      assertEqual x.moduleDecls [ decl ]
 
   -- |
   -- Foreign declarations
@@ -112,6 +164,7 @@ testModule = do
         "Main": {
           "imports": [],
           "exports": [],
+          "decls": [],
           "foreign": [
             "log"
           ]
@@ -121,5 +174,5 @@ testModule = do
 
     expectSuccess description (readModuleJSON json) \(Module x) ->
       assertEqual x.moduleForeign
-        [ (Ident "log")
+        [ Ident "log"
         ]

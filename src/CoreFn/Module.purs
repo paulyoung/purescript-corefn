@@ -5,60 +5,62 @@ module CoreFn.Module
   ) where
 
 import Prelude
-import Data.Array as Array
-import Data.Foreign.Keys as K
-import Control.Error.Util (exceptNoteA)
+import CoreFn.Expr (Bind, readBind)
 import CoreFn.Ident (Ident, readIdent)
 import CoreFn.Names (ModuleName(..), readModuleName)
-import Data.Foreign (F, Foreign, ForeignError(..), parseJSON, readArray)
+import CoreFn.Util (objectProp)
+import Data.Foreign (F, Foreign, parseJSON, readArray)
 import Data.Foreign.Class (readProp)
-import Data.Foreign.Index (class Index, prop)
-import Data.Generic (gShow, class Generic)
-import Data.Identity (Identity(..))
-import Data.List.NonEmpty (singleton)
+import Data.Foreign.Index (class Index)
 import Data.Traversable (traverse)
 
 -- |
 -- The CoreFn module representation
 --
-data Module = Module
-  { moduleExports :: Array Ident
+data Module a = Module
+  { moduleDecls :: Array (Bind a)
+  , moduleExports :: Array Ident
   , moduleForeign :: Array Ident
   , moduleImports :: Array ModuleName
   , moduleName :: ModuleName
   }
 
-derive instance eqModule :: Eq Module
-derive instance genericModule :: Generic Module
-derive instance ordModule :: Ord Module
+derive instance eqModule :: Eq a => Eq (Module a)
+derive instance ordModule :: Ord a => Ord (Module a)
 
-instance showModule :: Show Module where
-  show = gShow
+instance showModule :: Show a => Show (Module a) where
+  show (Module { moduleDecls
+               , moduleExports
+               , moduleForeign
+               , moduleImports
+               , moduleName }) =
+       "(Module { moduleName: " <> show moduleName <>
+               ", moduleDecls: " <> show moduleDecls <>
+               ", moduleExports: " <> show moduleExports <>
+               ", moduleForeign: " <> show moduleForeign <>
+               ", moduleImports: " <> show moduleImports <>
+               "})"
 
-readModule :: Foreign -> F Module
+readModule :: Foreign -> F (Module Unit)
 readModule x = do
-  keys <- K.keys x
-  key <- head keys
-  value <- prop key x
+  o <- objectProp "Module name not found" x
 
-  moduleExports <- traverseArrayProp "exports" value readIdent
-  moduleForeign <- traverseArrayProp "foreign" value readIdent
-  moduleImports <- traverseArrayProp "imports" value readModuleName
+  moduleDecls   <- traverseArrayProp "decls"   o.value readBind
+  moduleExports <- traverseArrayProp "exports" o.value readIdent
+  moduleForeign <- traverseArrayProp "foreign" o.value readIdent
+  moduleImports <- traverseArrayProp "imports" o.value readModuleName
 
-  let moduleName = ModuleName key
+  let moduleName = ModuleName o.key
 
   pure $ Module
-    { moduleExports: moduleExports
+    { moduleDecls: moduleDecls
+    , moduleExports: moduleExports
     , moduleForeign: moduleForeign
     , moduleImports: moduleImports
     , moduleName: moduleName
     }
 
   where
-
-  head :: Array ~> F
-  head y = exceptNoteA ((Identity <<< Array.head) y)
-                        (singleton (ForeignError "Module name not found"))
 
   traverseArrayProp
     :: forall a i
@@ -69,5 +71,5 @@ readModule x = do
     -> F (Array a)
   traverseArrayProp prop value f = readProp prop value >>= readArray >>= traverse f
 
-readModuleJSON :: String -> F Module
+readModuleJSON :: String -> F (Module Unit)
 readModuleJSON json = parseJSON json >>= readModule
