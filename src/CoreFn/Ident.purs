@@ -33,4 +33,4 @@ readIdent :: Foreign -> F Ident
 readIdent x = Ident <$> readString x
 
 readIdentJSON :: String -> F Ident
-readIdentJSON json = parseJSON json >>= readIdent
+readIdentJSON = parseJSON >=> readIdent

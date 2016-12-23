@@ -108,7 +108,7 @@ readLiteral x = do
   readLiteral' label _ = fail $ ForeignError $ "Unknown literal: " <> label
 
 readLiteralJSON :: String -> F (Literal (Expr Unit))
-readLiteralJSON json = parseJSON json >>= readLiteral
+readLiteralJSON = parseJSON >=> readLiteral
 
 -- |
 -- Data type for expressions and terms
@@ -156,7 +156,7 @@ readExpr x = do
   readExpr' label _ = fail $ ForeignError $ "Unknown expression: " <> label
 
 readExprJSON :: String -> F (Expr Unit)
-readExprJSON json = parseJSON json >>= readExpr
+readExprJSON = parseJSON >=> readExpr
 
 -- |
 --  A let or module binding.
@@ -186,4 +186,4 @@ readBind x = do
   pure $ NonRec unit (Ident o.key) expr
 
 readBindJSON :: String -> F (Bind Unit)
-readBindJSON json = parseJSON json >>= readBind
+readBindJSON = parseJSON >=> readBind
