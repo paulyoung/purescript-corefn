@@ -14,9 +14,8 @@ import Prelude
 import Data.Foreign.Keys as K
 import CoreFn.Ident (Ident(..))
 import CoreFn.Names (Qualified, readQualified)
-import CoreFn.Util (foreignError)
 import Data.Either (Either(..), either)
-import Data.Foreign (F, Foreign, parseJSON, readArray, readBoolean, readChar, readInt, readNumber, readString)
+import Data.Foreign (F, Foreign, ForeignError(..), fail, parseJSON, readArray, readBoolean, readChar, readInt, readNumber, readString)
 import Data.Foreign.Class (readProp)
 import Data.Foreign.Index (prop)
 import Data.Generic (class Generic)
@@ -104,7 +103,7 @@ readLiteral x = do
     obj <- readProp 1 v
     keys <- K.keys obj
     ObjectLiteral <$> readPairs obj keys
-  readLiteral' label _ = foreignError $ "Unknown literal: " <> label
+  readLiteral' label _ = fail $ ForeignError $ "Unknown literal: " <> label
 
 readLiteralJSON :: String -> F (Literal (Expr Unit))
 readLiteralJSON json = parseJSON json >>= readLiteral
@@ -153,7 +152,7 @@ readExpr x = do
   readExpr' "Var" y = do
     value <- readProp 1 y
     Var unit <$> readQualified Ident value
-  readExpr' label _ = foreignError $ "Unknown expression: " <> label
+  readExpr' label _ = fail $ ForeignError $ "Unknown expression: " <> label
 
 readExprJSON :: String -> F (Expr Unit)
 readExprJSON json = parseJSON json >>= readExpr
