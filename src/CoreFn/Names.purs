@@ -33,9 +33,7 @@ derive instance eqModuleName :: Eq ModuleName
 derive instance genericModuleName :: Generic ModuleName
 derive instance newtypeModuleName :: Newtype ModuleName _
 derive instance ordModuleName :: Ord ModuleName
-
-instance showModuleName :: Show ModuleName where
-  show = gShow
+derive newtype instance showModuleName :: Show ModuleName
 
 readModuleName :: Foreign -> F ModuleName
 readModuleName x = ModuleName <$> readString x
@@ -52,9 +50,7 @@ derive instance eqOpName :: Eq OpName
 derive instance genericOpName :: Generic OpName
 derive instance newtypeOpName :: Newtype OpName _
 derive instance ordOpName :: Ord OpName
-
-instance showOpName :: Show OpName where
-  show = gShow
+derive newtype instance showOpName :: Show OpName
 
 readOpName :: Foreign -> F OpName
 readOpName x = OpName <$> readString x
@@ -72,9 +68,7 @@ derive instance eqProperName :: Eq ProperName
 derive instance genericProperName :: Generic ProperName
 derive instance newtypeProperName :: Newtype ProperName _
 derive instance ordProperName :: Ord ProperName
-
-instance showProperName :: Show ProperName where
-  show = gShow
+derive newtype instance showProperName :: Show ProperName
 
 readProperName :: Foreign -> F ProperName
 readProperName x = ProperName <$> readString x
