@@ -181,6 +181,7 @@ instance showBind :: Show a => Show (Bind a) where
 readBind :: Foreign -> F (Bind Unit)
 readBind x = do
   o <- objectProp "Binding name not found" x
+  -- | TODO: mutally recursive bindings
   expr <- readExpr o.value
   pure $ NonRec unit (Ident o.key) expr
 
