@@ -1,5 +1,6 @@
 module Test.CoreFn.Expr
-  ( testExpr
+  ( testBindings
+  , testExpr
   , testLiterals
   ) where
 
@@ -7,7 +8,7 @@ import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
-import CoreFn.Expr (Expr(..), Literal(..), readExprJSON, readLiteralJSON)
+import CoreFn.Expr (Bind(..), Expr(..), Literal(..), readBindJSON, readExprJSON, readLiteralJSON)
 import CoreFn.Ident (Ident(..))
 import CoreFn.Names (ModuleName(..), Qualified(..))
 import Data.Either (Either(..))
@@ -281,3 +282,70 @@ testExpr = do
 
     expectFailure description (readExprJSON json) \x ->
       assertEqual x (singleton (ForeignError "Unknown expression: SomeExpression"))
+
+testBindings :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
+testBindings = do
+  log ""
+  log "Test Bind"
+
+  testMissingName
+  testNonRecBind
+  -- testRecBind
+
+  where
+
+  testMissingName = do
+    let description = "Missing binding name in JSON results in error"
+
+    let json = """
+      {}
+    """
+
+    expectFailure description (readBindJSON json) \x ->
+      assertEqual x (singleton (ForeignError "Binding name not found"))
+
+  -- |
+  -- NonRec
+  --
+  testNonRecBind = do
+    let description = "NonRec binding from JSON result in success"
+
+    let json = """
+      {
+        "main": [
+          "App",
+          [
+            "Var",
+            "Control.Monad.Eff.Console.log"
+          ],
+          [
+            "Literal",
+            [
+              "StringLiteral",
+              "Hello world!"
+            ]
+          ]
+        ]
+      }
+    """
+
+    expectSuccess description (readBindJSON json) \x -> do
+      let ident = Ident "main"
+      let moduleName = Just (ModuleName "Control.Monad.Eff.Console")
+      let qualified = Qualified moduleName (Ident "log")
+      let var = Var unit qualified
+      let literal = Literal unit (StringLiteral "Hello world!")
+      let expr = App unit var literal
+      assertEqual x (NonRec unit ident expr)
+
+  -- -- |
+  -- -- Rec
+  -- --
+  -- testRecBind = do
+  --   let description = "Rec binding from JSON result in success"
+
+  --   let json = """
+  --   """
+
+  --   expectSuccess description (readBindJSON json) \x -> do
+  --     assertEqual x (Rec )

@@ -2,8 +2,11 @@
 -- The core functional representation
 --
 module CoreFn.Expr
-  ( Expr(..)
+  ( Bind(..)
+  , Expr(..)
   , Literal(..)
+  , readBind
+  , readBindJSON
   , readExpr
   , readExprJSON
   , readLiteral
@@ -14,12 +17,12 @@ import Prelude
 import Data.Foreign.Keys as K
 import CoreFn.Ident (Ident(..))
 import CoreFn.Names (Qualified, readQualified)
+import CoreFn.Util (objectProp)
 import Data.Either (Either(..), either)
 import Data.Foreign (F, Foreign, ForeignError(..), fail, parseJSON, readArray, readBoolean, readChar, readInt, readNumber, readString)
 import Data.Foreign.Class (readProp)
 import Data.Foreign.Index (prop)
-import Data.Generic (class Generic)
-import Data.Traversable (sequence, traverse)
+import Data.Traversable (intercalate, sequence, traverse)
 import Data.Tuple (Tuple(..))
 
 -- |
@@ -53,7 +56,6 @@ data Literal a
   | ObjectLiteral (Array (Tuple String a))
 
 derive instance eqLiteral :: Eq a => Eq (Literal a)
-derive instance genericLiteral :: Generic a => Generic (Literal a)
 derive instance ordLiteral :: Ord a => Ord (Literal a)
 
 instance showLiteral :: Show a => Show (Literal a) where
@@ -126,7 +128,6 @@ data Expr a
   | Var a (Qualified Ident)
 
 derive instance eqExpr :: Eq a => Eq (Expr a)
-derive instance genericExpr :: Generic a => Generic (Expr a)
 derive instance ordExpr :: Ord a => Ord (Expr a)
 
 instance showExpr :: Show a => Show (Expr a) where
@@ -156,3 +157,32 @@ readExpr x = do
 
 readExprJSON :: String -> F (Expr Unit)
 readExprJSON json = parseJSON json >>= readExpr
+
+-- |
+--  A let or module binding.
+--
+data Bind a
+  -- |
+  -- Non-recursive binding for a single value
+  --
+  = NonRec a Ident (Expr a)
+  -- |
+  -- Mutually recursive binding group for several values
+  -- |
+  | Rec (Array (Tuple (Tuple a Ident) (Expr a)))
+
+derive instance eqBind :: Eq a => Eq (Bind a)
+derive instance ordBind :: Ord a => Ord (Bind a)
+
+instance showBind :: Show a => Show (Bind a) where
+  show (NonRec x y z) = "(NonRec " <> show x <> show y <> show z <> ")"
+  show (Rec x) = "(Rec " <> intercalate ", " (show <$> x) <> ")"
+
+readBind :: Foreign -> F (Bind Unit)
+readBind x = do
+  o <- objectProp "Binding name not found" x
+  expr <- readExpr o.value
+  pure $ NonRec unit (Ident o.key) expr
+
+readBindJSON :: String -> F (Bind Unit)
+readBindJSON json = parseJSON json >>= readBind
