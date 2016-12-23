@@ -72,4 +72,4 @@ readModule x = do
   traverseArrayProp prop value f = readProp prop value >>= readArray >>= traverse f
 
 readModuleJSON :: String -> F (Module Unit)
-readModuleJSON json = parseJSON json >>= readModule
+readModuleJSON = parseJSON >=> readModule

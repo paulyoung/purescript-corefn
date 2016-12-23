@@ -41,7 +41,7 @@ readModuleName :: Foreign -> F ModuleName
 readModuleName x = ModuleName <$> readString x
 
 readModuleNameJSON :: String -> F ModuleName
-readModuleNameJSON json = parseJSON json >>= readModuleName
+readModuleNameJSON = parseJSON >=> readModuleName
 
 -- |
 -- Operator alias names.
@@ -60,7 +60,7 @@ readOpName :: Foreign -> F OpName
 readOpName x = OpName <$> readString x
 
 readOpNameJSON :: String -> F OpName
-readOpNameJSON json = parseJSON json >>= readOpName
+readOpNameJSON = parseJSON >=> readOpName
 
 -- |
 -- Proper name, i.e. capitalized names for e.g. module names, type/data
@@ -80,7 +80,7 @@ readProperName :: Foreign -> F ProperName
 readProperName x = ProperName <$> readString x
 
 readProperNameJSON :: String -> F ProperName
-readProperNameJSON json = parseJSON json >>= readProperName
+readProperNameJSON = parseJSON >=> readProperName
 
 -- |
 -- A qualified name, i.e. a name with an optional module name
@@ -95,7 +95,7 @@ instance showQualified :: (Generic a, Show a) => Show (Qualified a) where
   show = gShow
 
 readQualified :: forall a. (String -> a) -> Foreign -> F (Qualified a)
-readQualified ctor x = readString x >>= (flip exceptNoteM errors) <<< toQualified
+readQualified ctor = readString >=> toQualified ctor
 
   where
 
@@ -104,22 +104,25 @@ readQualified ctor x = readString x >>= (flip exceptNoteM errors) <<< toQualifie
                   | otherwise = Just xs
 
   init' :: forall b. Array b -> Maybe (Array b)
-  init' xs = init xs >>= arrayToMaybe
+  init' = init >=> arrayToMaybe
 
   delimiter = "."
 
   toModuleName :: Array String -> ModuleName
   toModuleName = ModuleName <<< (joinWith delimiter)
 
-  toQualified :: String -> Maybe (Qualified a)
-  toQualified s = do
+  toQualified' :: (String -> a) -> String -> Maybe (Qualified a)
+  toQualified' c s = do
     let parts = split (Pattern delimiter) s
     lastPart <- last parts
     let moduleName = toModuleName <$> init' parts
-    Just $ Qualified moduleName (ctor lastPart)
+    Just $ Qualified moduleName (c lastPart)
+
+  toQualified :: (String -> a) -> String -> F (Qualified a)
+  toQualified c s = exceptNoteM (toQualified' c s) errors
 
   errors :: NonEmptyList ForeignError
   errors = singleton (ForeignError "Error parsing qualified name")
 
 readQualifiedJSON :: forall a. (String -> a) -> String -> F (Qualified a)
-readQualifiedJSON ctor json = parseJSON json >>= readQualified ctor
+readQualifiedJSON ctor = parseJSON >=> readQualified ctor
