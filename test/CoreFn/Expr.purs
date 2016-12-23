@@ -240,7 +240,7 @@ testExpr = do
       let qualified = Qualified moduleName (Ident "log")
       let expr1 = Var unit qualified
       let expr2 = Literal unit (StringLiteral "Hello world!")
-      assertEqual x (App expr1 expr2)
+      assertEqual x (App unit expr1 expr2)
 
   -- |
   -- Var
