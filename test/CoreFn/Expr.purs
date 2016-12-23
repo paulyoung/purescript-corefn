@@ -11,7 +11,7 @@ import CoreFn.Expr (Expr(..), Literal(..), readExprJSON, readLiteralJSON)
 import CoreFn.Ident (Ident(..))
 import CoreFn.Names (ModuleName(..), Qualified(..))
 import Data.Either (Either(..))
-import Data.Foreign (ForeignError(..), toForeign)
+import Data.Foreign (ForeignError(..))
 import Data.List.NonEmpty (singleton)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
@@ -136,7 +136,7 @@ testLiterals = do
 
     expectSuccess description (readLiteralJSON json) \x ->
       assertEqual x $ ArrayLiteral
-        [ Literal (toForeign unit) (StringLiteral "Hello world!")
+        [ Literal unit (StringLiteral "Hello world!")
         ]
 
   -- |
@@ -162,7 +162,7 @@ testLiterals = do
 
     expectSuccess description (readLiteralJSON json) \x ->
       assertEqual x $ ObjectLiteral
-        [ Tuple "hello" (Literal (toForeign unit) (StringLiteral "world!"))
+        [ Tuple "hello" (Literal unit (StringLiteral "world!"))
         ]
 
   -- |
@@ -210,7 +210,7 @@ testExpr = do
     """
 
     expectSuccess description (readExprJSON json) \x ->
-      assertEqual x (Literal (toForeign unit) (StringLiteral "Hello world!"))
+      assertEqual x (Literal unit (StringLiteral "Hello world!"))
 
   -- |
   -- App
@@ -238,8 +238,8 @@ testExpr = do
     expectSuccess description (readExprJSON json) \x -> do
       let moduleName = Just (ModuleName "Control.Monad.Eff.Console")
       let qualified = Qualified moduleName (Ident "log")
-      let expr1 = Var (toForeign unit) qualified
-      let expr2 = Literal (toForeign unit) (StringLiteral "Hello world!")
+      let expr1 = Var unit qualified
+      let expr2 = Literal unit (StringLiteral "Hello world!")
       assertEqual x (App expr1 expr2)
 
   -- |
@@ -258,7 +258,7 @@ testExpr = do
     expectSuccess description (readExprJSON json) \x -> do
       let moduleName = Just (ModuleName "Control.Monad.Eff.Console")
       let qualified = Qualified moduleName (Ident "log")
-      assertEqual x (Var (toForeign unit) qualified)
+      assertEqual x (Var unit qualified)
 
   -- |
   -- Unknown

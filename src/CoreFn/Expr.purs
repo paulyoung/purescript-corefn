@@ -16,7 +16,7 @@ import CoreFn.Ident (Ident(..))
 import CoreFn.Names (Qualified, readQualified)
 import CoreFn.Util (foreignError)
 import Data.Either (Either(..), either)
-import Data.Foreign (F, Foreign, parseJSON, readArray, readBoolean, readChar, readInt, readNumber, readString, toForeign)
+import Data.Foreign (F, Foreign, parseJSON, readArray, readBoolean, readChar, readInt, readNumber, readString)
 import Data.Foreign.Class (readProp)
 import Data.Foreign.Index (prop)
 import Data.Generic (class Generic)
@@ -65,23 +65,23 @@ instance showLiteral :: Show a => Show (Literal a) where
   show (ArrayLiteral a) = "(ArrayLiteral " <> show a <> ")"
   show (ObjectLiteral o) = "(ObjectLiteral" <> show o <> ")"
 
-readLiteral :: Foreign -> F (Literal (Expr Foreign))
+readLiteral :: Foreign -> F (Literal (Expr Unit))
 readLiteral x = do
   label <- readProp 0 x >>= readString
   readLiteral' label x
 
   where
 
-  readValues :: Array Foreign -> F (Array (Expr Foreign))
+  readValues :: Array Foreign -> F (Array (Expr Unit))
   readValues = traverse readExpr
 
-  readPair :: Foreign -> String -> F (Tuple String (Expr Foreign))
+  readPair :: Foreign -> String -> F (Tuple String (Expr Unit))
   readPair obj key = Tuple key <$> (prop key obj >>= readExpr)
 
-  readPairs :: Foreign -> Array String -> F (Array (Tuple String (Expr Foreign)))
+  readPairs :: Foreign -> Array String -> F (Array (Tuple String (Expr Unit)))
   readPairs obj = sequence <<< (map <<< readPair) obj
 
-  readLiteral' :: String -> Foreign -> F (Literal (Expr Foreign))
+  readLiteral' :: String -> Foreign -> F (Literal (Expr Unit))
   readLiteral' "IntLiteral" v = do
     value <- readProp 1 v
     NumericLiteral <$> Left <$> readInt value
@@ -106,7 +106,7 @@ readLiteral x = do
     ObjectLiteral <$> readPairs obj keys
   readLiteral' label _ = foreignError $ "Unknown literal: " <> label
 
-readLiteralJSON :: String -> F (Literal (Expr Foreign))
+readLiteralJSON :: String -> F (Literal (Expr Unit))
 readLiteralJSON json = parseJSON json >>= readLiteral
 
 -- |
@@ -126,39 +126,34 @@ data Expr a
   --
   | Var a (Qualified Ident)
 
+derive instance eqExpr :: Eq a => Eq (Expr a)
 derive instance genericExpr :: Generic a => Generic (Expr a)
 derive instance ordExpr :: Ord a => Ord (Expr a)
 
-instance eqExpr :: Eq (Expr a) where
-  eq (Literal _ l1) (Literal _ l2) = l1 == l2
-  eq (App x1 y1) (App x2 y2) = x1 == x2 && y1 == y2
-  eq (Var _ v1) (Var _ v2) = v1 == v2
-  eq _ _ = false
+instance showExpr :: Show a => Show (Expr a) where
+  show (Literal x y) = "(Literal " <> show x <> " " <> show y <> ")"
+  show (App x y) = "(App " <> show x <> " " <> show y <> ")"
+  show (Var x y) = "(Var " <> show x <> " " <> show y <> ")"
 
-instance showExpr :: Show (Expr a) where
-  show (Literal _ l) = "(Literal " <> "_" <> " " <> show l <> ")"
-  show (App e1 e2) = "(App" <> show e1 <> " " <> show e2 <> ")"
-  show (Var _ v) = "(Var " <> "_" <> " " <> show v <> ")"
-
-readExpr :: Foreign -> F (Expr Foreign)
+readExpr :: Foreign -> F (Expr Unit)
 readExpr x = do
   label <- readProp 0 x >>= readString
   readExpr' label x
 
   where
 
-  readExpr' :: String -> Foreign -> F (Expr Foreign)
+  readExpr' :: String -> Foreign -> F (Expr Unit)
   readExpr' "Literal" y = do
     value <- readProp 1 y
-    Literal (toForeign unit) <$> readLiteral value
+    Literal unit <$> readLiteral value
   readExpr' "App" y = do
     expr1 <- readProp 1 y
     expr2 <- readProp 2 y
     App <$> readExpr expr1 <*> readExpr expr2
   readExpr' "Var" y = do
     value <- readProp 1 y
-    Var (toForeign unit) <$> readQualified Ident value
+    Var unit <$> readQualified Ident value
   readExpr' label _ = foreignError $ "Unknown expression: " <> label
 
-readExprJSON :: String -> F (Expr Foreign)
+readExprJSON :: String -> F (Expr Unit)
 readExprJSON json = parseJSON json >>= readExpr
