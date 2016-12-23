@@ -120,7 +120,7 @@ data Expr a
   -- |
   -- Function application
   --
-  | App (Expr a) (Expr a)
+  | App a (Expr a) (Expr a)
   -- |
   -- Variable
   --
@@ -132,7 +132,7 @@ derive instance ordExpr :: Ord a => Ord (Expr a)
 
 instance showExpr :: Show a => Show (Expr a) where
   show (Literal x y) = "(Literal " <> show x <> " " <> show y <> ")"
-  show (App x y) = "(App " <> show x <> " " <> show y <> ")"
+  show (App x y z) = "(App " <> show x <> " " <> show y <> " " <> show z <> ")"
   show (Var x y) = "(Var " <> show x <> " " <> show y <> ")"
 
 readExpr :: Foreign -> F (Expr Unit)
@@ -149,7 +149,7 @@ readExpr x = do
   readExpr' "App" y = do
     expr1 <- readProp 1 y
     expr2 <- readProp 2 y
-    App <$> readExpr expr1 <*> readExpr expr2
+    App unit <$> readExpr expr1 <*> readExpr expr2
   readExpr' "Var" y = do
     value <- readProp 1 y
     Var unit <$> readQualified Ident value
