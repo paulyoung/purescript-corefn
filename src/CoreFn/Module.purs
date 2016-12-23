@@ -5,17 +5,13 @@ module CoreFn.Module
   ) where
 
 import Prelude
-import Data.Array as Array
-import Data.Foreign.Keys as K
-import Control.Error.Util (exceptNoteA)
 import CoreFn.Ident (Ident, readIdent)
 import CoreFn.Names (ModuleName(..), readModuleName)
-import Data.Foreign (F, Foreign, ForeignError(..), parseJSON, readArray)
+import CoreFn.Util (objectProp)
+import Data.Foreign (F, Foreign, parseJSON, readArray)
 import Data.Foreign.Class (readProp)
-import Data.Foreign.Index (class Index, prop)
 import Data.Generic (gShow, class Generic)
-import Data.Identity (Identity(..))
-import Data.List.NonEmpty (singleton)
+import Data.Foreign.Index (class Index)
 import Data.Traversable (traverse)
 
 -- |
@@ -37,15 +33,13 @@ instance showModule :: Show Module where
 
 readModule :: Foreign -> F Module
 readModule x = do
-  keys <- K.keys x
-  key <- head keys
-  value <- prop key x
+  o <- objectProp "Module name not found" x
 
-  moduleExports <- traverseArrayProp "exports" value readIdent
-  moduleForeign <- traverseArrayProp "foreign" value readIdent
-  moduleImports <- traverseArrayProp "imports" value readModuleName
+  moduleExports <- traverseArrayProp "exports" o.value readIdent
+  moduleForeign <- traverseArrayProp "foreign" o.value readIdent
+  moduleImports <- traverseArrayProp "imports" o.value readModuleName
 
-  let moduleName = ModuleName key
+  let moduleName = ModuleName o.key
 
   pure $ Module
     { moduleExports: moduleExports
@@ -55,10 +49,6 @@ readModule x = do
     }
 
   where
-
-  head :: Array ~> F
-  head y = exceptNoteA ((Identity <<< Array.head) y)
-                        (singleton (ForeignError "Module name not found"))
 
   traverseArrayProp
     :: forall a i
