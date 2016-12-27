@@ -23,6 +23,7 @@ testModule = do
   testMissingName
   testName
   testImports
+  testBuiltWith
   testExports
   testDecls
   testForeign
@@ -49,6 +50,7 @@ testModule = do
       {
         "Main": {
           "imports": [],
+          "builtWith": "0.10.1",
           "exports": [],
           "decls": [],
           "foreign": []
@@ -58,6 +60,29 @@ testModule = do
 
     expectSuccess description (readModuleJSON json) \(Module x) ->
       assertEqual x.moduleName (ModuleName "Main")
+
+  -- |
+  -- Built with version
+  --
+  testBuiltWith = do
+    let description = "Built with version from JSON result in success"
+
+    let json = """
+      {
+        "Main": {
+          "imports": [
+            "Prim"
+          ],
+          "builtWith": "0.10.1",
+          "exports": [],
+          "decls": [],
+          "foreign": []
+        }
+      }
+    """
+
+    expectSuccess description (readModuleJSON json) \(Module x) ->
+      assertEqual x.builtWith "0.10.1"
 
   -- |
   -- Imports
@@ -71,6 +96,7 @@ testModule = do
           "imports": [
             "Prim"
           ],
+          "builtWith": "0.10.1",
           "exports": [],
           "decls": [],
           "foreign": []
@@ -93,6 +119,7 @@ testModule = do
       {
         "Main": {
           "imports": [],
+          "builtWith": "0.10.1",
           "exports": [
             "main"
           ],
@@ -117,6 +144,7 @@ testModule = do
       {
         "Main": {
           "imports": [],
+          "builtWith": "0.10.1",
           "exports": [
             "main"
           ],
@@ -163,6 +191,7 @@ testModule = do
       {
         "Main": {
           "imports": [],
+          "builtWith": "0.10.1",
           "exports": [],
           "decls": [],
           "foreign": [
