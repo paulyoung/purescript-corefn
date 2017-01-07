@@ -175,7 +175,7 @@ derive instance eqBind :: Eq a => Eq (Bind a)
 derive instance ordBind :: Ord a => Ord (Bind a)
 
 instance showBind :: Show a => Show (Bind a) where
-  show (NonRec x y z) = "(NonRec " <> show x <> show y <> show z <> ")"
+  show (NonRec x y z) = "(NonRec " <> intercalate " " [show x, show y, show z] <> ")"
   show (Rec x) = "(Rec " <> intercalate ", " (show <$> x) <> ")"
 
 readBind :: Foreign -> F (Bind Unit)
