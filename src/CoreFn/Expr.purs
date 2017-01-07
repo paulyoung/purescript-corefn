@@ -15,7 +15,7 @@ module CoreFn.Expr
 
 import Prelude
 import Data.Foreign.Keys as K
-import CoreFn.Ident (Ident(..))
+import CoreFn.Ident (Ident(..), readIdent)
 import CoreFn.Names (Qualified, readQualified)
 import CoreFn.Util (objectProp)
 import Data.Either (Either(..), either)
@@ -119,6 +119,10 @@ data Expr a
   --
   = Literal a (Literal (Expr a))
   -- |
+  -- Function introduction
+  --
+  | Abs a Ident (Expr a)
+  -- |
   -- Function application
   --
   | App a (Expr a) (Expr a)
@@ -132,6 +136,7 @@ derive instance ordExpr :: Ord a => Ord (Expr a)
 
 instance showExpr :: Show a => Show (Expr a) where
   show (Literal x y) = "(Literal " <> show x <> " " <> show y <> ")"
+  show (Abs x y z) = "(Abs " <> show x <> " " <> show y <> " " <> show z <> ")"
   show (App x y z) = "(App " <> show x <> " " <> show y <> " " <> show z <> ")"
   show (Var x y) = "(Var " <> show x <> " " <> show y <> ")"
 
@@ -146,6 +151,10 @@ readExpr x = do
   readExpr' "Literal" y = do
     value <- readProp 1 y
     Literal unit <$> readLiteral value
+  readExpr' "Abs" y = do
+    ident <- readProp 1 y
+    expr <- readProp 2 y
+    Abs unit <$> readIdent ident <*> readExpr expr
   readExpr' "App" y = do
     expr1 <- readProp 1 y
     expr2 <- readProp 2 y

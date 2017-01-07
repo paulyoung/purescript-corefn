@@ -188,6 +188,7 @@ testExpr = do
   log "Test Expr"
 
   testLiteralExpr
+  testAbsExpr
   testAppExpr
   testVarExpr
   testUnknownExpr
@@ -212,6 +213,29 @@ testExpr = do
 
     expectSuccess description (readExprJSON json) \x ->
       assertEqual x (Literal unit (StringLiteral "Hello world!"))
+
+  -- |
+  -- Abs
+  --
+  testAbsExpr = do
+    let description = "Abs from JSON results in success"
+
+    let json = """
+      [
+        "Abs",
+        "x",
+        [
+          "Var",
+          "x"
+        ]
+      ]
+    """
+
+    expectSuccess description (readExprJSON json) \x -> do
+      let ident = Ident "x"
+      let qualified = Qualified Nothing (Ident "x")
+      let expr = Var unit qualified
+      assertEqual x (Abs unit ident expr)
 
   -- |
   -- App
