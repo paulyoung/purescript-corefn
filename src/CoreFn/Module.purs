@@ -37,7 +37,7 @@ instance showModule :: Show a => Show (Module a) where
                , moduleImports
                , moduleName }) =
        "(Module { builtWith: " <> show builtWith <>
-               ", moduleName: " <> show moduleDecls <>
+               ", moduleName: " <> show moduleName <>
                ", moduleDecls: " <> show moduleDecls <>
                ", moduleExports: " <> show moduleExports <>
                ", moduleForeign: " <> show moduleForeign <>
