@@ -9,10 +9,9 @@ import Control.Monad.Eff.Exception (EXCEPTION)
 import CoreFn.Expr (Bind(..), Expr(..), Literal(..))
 import CoreFn.Ident (Ident(..))
 import CoreFn.Module (Module(..), readModuleJSON)
-import CoreFn.Names (ModuleName(..), Qualified(..))
+import CoreFn.Names (ModuleName(..))
 import Data.Foreign (ForeignError(..))
 import Data.List.NonEmpty (singleton)
-import Data.Maybe (Maybe(..))
 import Test.Util (assertEqual, expectFailure, expectSuccess)
 
 testModule :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
@@ -150,18 +149,20 @@ testModule = do
           ],
           "decls": [
             {
-              "main": [
-                "App",
+              "x": [
+                "Literal",
                 [
-                  "Var",
-                  "Control.Monad.Eff.Console.log"
-                ],
+                  "StringLiteral",
+                  "x"
+                ]
+              ]
+            },
+            {
+              "y": [
+                "Literal",
                 [
-                  "Literal",
-                  [
-                    "StringLiteral",
-                    "Hello world!"
-                  ]
+                  "StringLiteral",
+                  "y"
                 ]
               ]
             }
@@ -172,14 +173,15 @@ testModule = do
     """
 
     expectSuccess description (readModuleJSON json) \(Module x) -> do
-      let ident = Ident "main"
-      let moduleName = Just (ModuleName "Control.Monad.Eff.Console")
-      let qualified = Qualified moduleName (Ident "log")
-      let var = Var unit qualified
-      let literal = Literal unit (StringLiteral "Hello world!")
-      let expr = App unit var literal
-      let decl = NonRec unit ident expr
-      assertEqual x.moduleDecls [ decl ]
+      let xIdent = Ident "x"
+      let xLiteral = Literal unit (StringLiteral "x")
+      let xDecl = NonRec unit xIdent xLiteral
+
+      let yIdent = Ident "y"
+      let yLiteral = Literal unit (StringLiteral "y")
+      let yDecl = NonRec unit yIdent yLiteral
+
+      assertEqual x.moduleDecls [ xDecl, yDecl ]
 
   -- |
   -- Foreign declarations
