@@ -314,7 +314,7 @@ testBindings = do
 
   testMissingName
   testNonRecBind
-  -- testRecBind
+  testRecBind
 
   where
 
@@ -362,14 +362,64 @@ testBindings = do
       let expr = App unit var literal
       assertEqual x (NonRec unit ident expr)
 
-  -- -- |
-  -- -- Rec
-  -- --
-  -- testRecBind = do
-  --   let description = "Rec binding from JSON result in success"
+  -- |
+  -- Rec
+  --
+  testRecBind = do
+    let description = "Rec binding from JSON result in success"
 
-  --   let json = """
-  --   """
+    let json = """
+      {
+        "f": [
+          "Abs",
+          "x",
+          [
+            "App",
+            [
+              "Var",
+              "Example.g"
+            ],
+            [
+              "Var",
+              "x"
+            ]
+          ]
+        ],
+        "g": [
+          "Abs",
+          "x",
+          [
+            "App",
+            [
+              "Var",
+              "Example.f"
+            ],
+            [
+              "Var",
+              "x"
+            ]
+          ]
+        ]
+      }
+    """
 
-  --   expectSuccess description (readBindJSON json) \x -> do
-  --     assertEqual x (Rec )
+    expectSuccess description (readBindJSON json) \x -> do
+      let fIdent = Ident "f"
+      let fModuleName = Just (ModuleName "Example")
+      let fQualified = Qualified fModuleName (Ident "g")
+      let fAppVar1 = Var unit fQualified
+      let fAppVar2 = Var unit (Qualified Nothing (Ident "x"))
+      let fApp = App unit fAppVar1 fAppVar2
+      let fAbs = Abs unit (Ident "x") fApp
+      let fBinding = Tuple (Tuple unit fIdent) fApp
+
+      let gIdent = Ident "g"
+      let gModuleName = Just (ModuleName "Example")
+      let gQualified = Qualified gModuleName (Ident "f")
+      let gAppVar1 = Var unit gQualified
+      let gAppVar2 = Var unit (Qualified Nothing (Ident "x"))
+      let gApp = App unit gAppVar1 gAppVar2
+      let gAbs = Abs unit (Ident "x") gApp
+      let gBinding = Tuple (Tuple unit gIdent) fApp
+
+      assertEqual x (Rec [fBinding, gBinding])
