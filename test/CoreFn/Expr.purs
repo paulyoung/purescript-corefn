@@ -234,8 +234,8 @@ testExpr = do
     expectSuccess description (readExprJSON json) \x -> do
       let ident = Ident "x"
       let qualified = Qualified Nothing (Ident "x")
-      let expr = Var unit qualified
-      assertEqual x (Abs unit ident expr)
+      let var = Var unit qualified
+      assertEqual x (Abs unit ident var)
 
   -- |
   -- App
@@ -263,9 +263,9 @@ testExpr = do
     expectSuccess description (readExprJSON json) \x -> do
       let moduleName = Just (ModuleName "Control.Monad.Eff.Console")
       let qualified = Qualified moduleName (Ident "log")
-      let expr1 = Var unit qualified
-      let expr2 = Literal unit (StringLiteral "Hello world!")
-      assertEqual x (App unit expr1 expr2)
+      let var = Var unit qualified
+      let literal = Literal unit (StringLiteral "Hello world!")
+      assertEqual x (App unit var literal)
 
   -- |
   -- Var
