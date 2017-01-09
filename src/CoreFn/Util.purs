@@ -3,6 +3,7 @@
 --
 module CoreFn.Util
   ( objectProp
+  , objectProps
   ) where
 
 import Prelude
@@ -13,6 +14,24 @@ import Data.Foreign (F, Foreign, ForeignError(ForeignError))
 import Data.Foreign.Index (prop)
 import Data.Identity (Identity(..))
 import Data.List.NonEmpty (singleton)
+import Data.Traversable (traverse)
+
+type Pair = { key :: String, value :: Foreign }
+
+-- |
+-- Create an array of records by reading a JSON object.
+--
+objectProps :: Foreign -> F (Array Pair)
+objectProps x = do
+  keys <- K.keys x
+  traverse toPair keys
+
+  where
+
+  toPair :: String -> F Pair
+  toPair key = do
+    value <- prop key x
+    pure $ { key, value }
 
 -- |
 -- Create a record by reading a JSON object.
@@ -22,10 +41,7 @@ import Data.List.NonEmpty (singleton)
 --
 -- The provided error message is used if a key cannot be obtained.
 --
-objectProp :: String -> Foreign -> F { key :: String, value :: Foreign }
+objectProp :: String -> Foreign -> F Pair
 objectProp message x = do
-  keys <- K.keys x
-  key <- exceptNoteA ((Identity <<< head) keys)
-                      (singleton (ForeignError message))
-  value <- prop key x
-  pure $ { key, value }
+  pairs <- objectProps x
+  exceptNoteA ((Identity <<< head) pairs) (singleton (ForeignError message))

@@ -12,6 +12,7 @@ import CoreFn.Module (Module(..), readModuleJSON)
 import CoreFn.Names (ModuleName(..))
 import Data.Foreign (ForeignError(..))
 import Data.List.NonEmpty (singleton)
+import Data.Tuple (Tuple(..))
 import Test.Util (assertEqual, expectFailure, expectSuccess)
 
 testModule :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
@@ -175,11 +176,13 @@ testModule = do
     expectSuccess description (readModuleJSON json) \(Module x) -> do
       let xIdent = Ident "x"
       let xLiteral = Literal unit (StringLiteral "x")
-      let xDecl = NonRec unit xIdent xLiteral
+      let xBinding = Tuple (Tuple unit xIdent) xLiteral
+      let xDecl = Bind [ xBinding ]
 
       let yIdent = Ident "y"
       let yLiteral = Literal unit (StringLiteral "y")
-      let yDecl = NonRec unit yIdent yLiteral
+      let yBinding = Tuple (Tuple unit yIdent) yLiteral
+      let yDecl = Bind [ yBinding ]
 
       assertEqual x.moduleDecls [ xDecl, yDecl ]
 

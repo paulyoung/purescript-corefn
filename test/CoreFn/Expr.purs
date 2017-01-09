@@ -234,8 +234,8 @@ testExpr = do
     expectSuccess description (readExprJSON json) \x -> do
       let ident = Ident "x"
       let qualified = Qualified Nothing (Ident "x")
-      let expr = Var unit qualified
-      assertEqual x (Abs unit ident expr)
+      let var = Var unit qualified
+      assertEqual x (Abs unit ident var)
 
   -- |
   -- App
@@ -263,9 +263,9 @@ testExpr = do
     expectSuccess description (readExprJSON json) \x -> do
       let moduleName = Just (ModuleName "Control.Monad.Eff.Console")
       let qualified = Qualified moduleName (Ident "log")
-      let expr1 = Var unit qualified
-      let expr2 = Literal unit (StringLiteral "Hello world!")
-      assertEqual x (App unit expr1 expr2)
+      let var = Var unit qualified
+      let literal = Literal unit (StringLiteral "Hello world!")
+      assertEqual x (App unit var literal)
 
   -- |
   -- Var
@@ -312,27 +312,27 @@ testBindings = do
   log ""
   log "Test Bind"
 
-  testMissingName
+  testNoBindings
   testNonRecBind
-  -- testRecBind
+  testRecBind
 
   where
 
-  testMissingName = do
-    let description = "Missing binding name in JSON results in error"
+  testNoBindings = do
+    let description = "No bindings from JSON results in success"
 
     let json = """
       {}
     """
 
-    expectFailure description (readBindJSON json) \x ->
-      assertEqual x (singleton (ForeignError "Binding name not found"))
+    expectSuccess description (readBindJSON json) \x ->
+      assertEqual x (Bind [])
 
   -- |
-  -- NonRec
+  -- Non-recursive binding
   --
   testNonRecBind = do
-    let description = "NonRec binding from JSON result in success"
+    let description = "Non-recursive binding from JSON result in success"
 
     let json = """
       {
@@ -359,17 +359,68 @@ testBindings = do
       let qualified = Qualified moduleName (Ident "log")
       let var = Var unit qualified
       let literal = Literal unit (StringLiteral "Hello world!")
-      let expr = App unit var literal
-      assertEqual x (NonRec unit ident expr)
+      let app = App unit var literal
+      let binding = Tuple (Tuple unit ident) app
+      assertEqual x (Bind [binding])
 
-  -- -- |
-  -- -- Rec
-  -- --
-  -- testRecBind = do
-  --   let description = "Rec binding from JSON result in success"
+  -- |
+  -- Mutually recursive bindings
+  --
+  testRecBind = do
+    let description = "Mutually recursive bindings from JSON result in success"
 
-  --   let json = """
-  --   """
+    let json = """
+      {
+        "f": [
+          "Abs",
+          "x",
+          [
+            "App",
+            [
+              "Var",
+              "Example.g"
+            ],
+            [
+              "Var",
+              "x"
+            ]
+          ]
+        ],
+        "g": [
+          "Abs",
+          "x",
+          [
+            "App",
+            [
+              "Var",
+              "Example.f"
+            ],
+            [
+              "Var",
+              "x"
+            ]
+          ]
+        ]
+      }
+    """
 
-  --   expectSuccess description (readBindJSON json) \x -> do
-  --     assertEqual x (Rec )
+    expectSuccess description (readBindJSON json) \x -> do
+      let fIdent = Ident "f"
+      let fModuleName = Just (ModuleName "Example")
+      let fQualified = Qualified fModuleName (Ident "g")
+      let fAppVar1 = Var unit fQualified
+      let fAppVar2 = Var unit (Qualified Nothing (Ident "x"))
+      let fApp = App unit fAppVar1 fAppVar2
+      let fAbs = Abs unit (Ident "x") fApp
+      let fBinding = Tuple (Tuple unit fIdent) fAbs
+
+      let gIdent = Ident "g"
+      let gModuleName = Just (ModuleName "Example")
+      let gQualified = Qualified gModuleName (Ident "f")
+      let gAppVar1 = Var unit gQualified
+      let gAppVar2 = Var unit (Qualified Nothing (Ident "x"))
+      let gApp = App unit gAppVar1 gAppVar2
+      let gAbs = Abs unit (Ident "x") gApp
+      let gBinding = Tuple (Tuple unit gIdent) gAbs
+
+      assertEqual x (Bind [fBinding, gBinding])
