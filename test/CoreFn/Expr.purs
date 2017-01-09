@@ -319,7 +319,7 @@ testBindings = do
   where
 
   testNoBindings = do
-    let description = "Empty object results in empty array of bindings"
+    let description = "No bindings from JSON results in success"
 
     let json = """
       {}
