@@ -19,7 +19,7 @@ import Data.Traversable (traverse)
 type Pair = { key :: String, value :: Foreign }
 
 -- |
--- Create an array of records from an object
+-- Create an array of records by reading a JSON object.
 --
 objectProps :: Foreign -> F (Array Pair)
 objectProps x = do
