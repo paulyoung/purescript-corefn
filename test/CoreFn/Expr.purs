@@ -411,7 +411,7 @@ testBindings = do
       let fAppVar2 = Var unit (Qualified Nothing (Ident "x"))
       let fApp = App unit fAppVar1 fAppVar2
       let fAbs = Abs unit (Ident "x") fApp
-      let fBinding = Tuple (Tuple unit fIdent) fApp
+      let fBinding = Tuple (Tuple unit fIdent) fAbs
 
       let gIdent = Ident "g"
       let gModuleName = Just (ModuleName "Example")
@@ -420,6 +420,6 @@ testBindings = do
       let gAppVar2 = Var unit (Qualified Nothing (Ident "x"))
       let gApp = App unit gAppVar1 gAppVar2
       let gAbs = Abs unit (Ident "x") gApp
-      let gBinding = Tuple (Tuple unit gIdent) fApp
+      let gBinding = Tuple (Tuple unit gIdent) gAbs
 
       assertEqual x (Rec [fBinding, gBinding])
