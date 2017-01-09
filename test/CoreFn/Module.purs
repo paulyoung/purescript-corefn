@@ -13,6 +13,7 @@ import CoreFn.Names (ModuleName(..), Qualified(..))
 import Data.Foreign (ForeignError(..))
 import Data.List.NonEmpty (singleton)
 import Data.Maybe (Maybe(..))
+import Data.Tuple (Tuple(..))
 import Test.Util (assertEqual, expectFailure, expectSuccess)
 
 testModule :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
@@ -177,8 +178,9 @@ testModule = do
       let qualified = Qualified moduleName (Ident "log")
       let var = Var unit qualified
       let literal = Literal unit (StringLiteral "Hello world!")
-      let expr = App unit var literal
-      let decl = NonRec unit ident expr
+      let app = App unit var literal
+      let binding = Tuple (Tuple unit ident) app
+      let decl = Bind [binding]
       assertEqual x.moduleDecls [ decl ]
 
   -- |

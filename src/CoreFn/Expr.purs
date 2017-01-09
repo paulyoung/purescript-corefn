@@ -17,12 +17,12 @@ import Prelude
 import Data.Foreign.Keys as K
 import CoreFn.Ident (Ident(..), readIdent)
 import CoreFn.Names (Qualified, readQualified)
-import CoreFn.Util (objectProp)
+import CoreFn.Util (objectProps)
 import Data.Either (Either(..), either)
 import Data.Foreign (F, Foreign, ForeignError(..), fail, parseJSON, readArray, readBoolean, readChar, readInt, readNumber, readString)
 import Data.Foreign.Class (readProp)
 import Data.Foreign.Index (prop)
-import Data.Traversable (intercalate, sequence, traverse)
+import Data.Traversable (sequence, traverse)
 import Data.Tuple (Tuple(..))
 
 -- |
@@ -170,29 +170,29 @@ readExprJSON = parseJSON >=> readExpr
 -- |
 --  A let or module binding.
 --
-data Bind a
-  -- |
-  -- Non-recursive binding for a single value
-  --
-  = NonRec a Ident (Expr a)
-  -- |
-  -- Mutually recursive binding group for several values
-  -- |
-  | Rec (Array (Tuple (Tuple a Ident) (Expr a)))
+data Bind a = Bind (Array (Tuple (Tuple a Ident) (Expr a)))
 
 derive instance eqBind :: Eq a => Eq (Bind a)
 derive instance ordBind :: Ord a => Ord (Bind a)
 
 instance showBind :: Show a => Show (Bind a) where
-  show (NonRec x y z) = "(NonRec " <> intercalate " " [show x, show y, show z] <> ")"
-  show (Rec x) = "(Rec " <> intercalate ", " (show <$> x) <> ")"
+  show (Bind x) = "(Bind " <> show x <> ")"
 
 readBind :: Foreign -> F (Bind Unit)
 readBind x = do
-  o <- objectProp "Binding name not found" x
-  -- | TODO: mutally recursive bindings
-  expr <- readExpr o.value
-  pure $ NonRec unit (Ident o.key) expr
+  pairs <- objectProps x
+  bindings <- traverse fromPair pairs
+  pure $ Bind bindings
+
+  where
+
+  fromPair
+    :: { key :: String, value :: Foreign }
+    -> F (Tuple (Tuple Unit Ident) (Expr Unit))
+  fromPair pair = do
+    expr <- readExpr pair.value
+    let ident = Ident pair.key
+    pure $ Tuple (Tuple unit ident) expr
 
 readBindJSON :: String -> F (Bind Unit)
 readBindJSON = parseJSON >=> readBind

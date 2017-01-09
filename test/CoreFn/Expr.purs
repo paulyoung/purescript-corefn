@@ -312,27 +312,27 @@ testBindings = do
   log ""
   log "Test Bind"
 
-  testMissingName
+  testNoBindings
   testNonRecBind
   testRecBind
 
   where
 
-  testMissingName = do
-    let description = "Missing binding name in JSON results in error"
+  testNoBindings = do
+    let description = "Empty object results in empty array of bindings"
 
     let json = """
       {}
     """
 
-    expectFailure description (readBindJSON json) \x ->
-      assertEqual x (singleton (ForeignError "Binding name not found"))
+    expectSuccess description (readBindJSON json) \x ->
+      assertEqual x (Bind [])
 
   -- |
-  -- NonRec
+  -- Non-recursive binding
   --
   testNonRecBind = do
-    let description = "NonRec binding from JSON result in success"
+    let description = "Non-recursive binding from JSON result in success"
 
     let json = """
       {
@@ -359,14 +359,15 @@ testBindings = do
       let qualified = Qualified moduleName (Ident "log")
       let var = Var unit qualified
       let literal = Literal unit (StringLiteral "Hello world!")
-      let expr = App unit var literal
-      assertEqual x (NonRec unit ident expr)
+      let app = App unit var literal
+      let binding = Tuple (Tuple unit ident) app
+      assertEqual x (Bind [binding])
 
   -- |
-  -- Rec
+  -- Mutually recursive bindings
   --
   testRecBind = do
-    let description = "Rec binding from JSON result in success"
+    let description = "Mutually recursive bindings from JSON result in success"
 
     let json = """
       {
@@ -422,4 +423,4 @@ testBindings = do
       let gAbs = Abs unit (Ident "x") gApp
       let gBinding = Tuple (Tuple unit gIdent) gAbs
 
-      assertEqual x (Rec [fBinding, gBinding])
+      assertEqual x (Bind [fBinding, gBinding])
