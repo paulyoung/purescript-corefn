@@ -9,10 +9,9 @@ import Control.Monad.Eff.Exception (EXCEPTION)
 import CoreFn.Expr (Bind(..), Expr(..), Literal(..))
 import CoreFn.Ident (Ident(..))
 import CoreFn.Module (Module(..), readModuleJSON)
-import CoreFn.Names (ModuleName(..), Qualified(..))
+import CoreFn.Names (ModuleName(..))
 import Data.Foreign (ForeignError(..))
 import Data.List.NonEmpty (singleton)
-import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Test.Util (assertEqual, expectFailure, expectSuccess)
 
@@ -151,18 +150,20 @@ testModule = do
           ],
           "decls": [
             {
-              "main": [
-                "App",
+              "x": [
+                "Literal",
                 [
-                  "Var",
-                  "Control.Monad.Eff.Console.log"
-                ],
+                  "StringLiteral",
+                  "x"
+                ]
+              ]
+            },
+            {
+              "y": [
+                "Literal",
                 [
-                  "Literal",
-                  [
-                    "StringLiteral",
-                    "Hello world!"
-                  ]
+                  "StringLiteral",
+                  "y"
                 ]
               ]
             }
@@ -173,15 +174,17 @@ testModule = do
     """
 
     expectSuccess description (readModuleJSON json) \(Module x) -> do
-      let ident = Ident "main"
-      let moduleName = Just (ModuleName "Control.Monad.Eff.Console")
-      let qualified = Qualified moduleName (Ident "log")
-      let var = Var unit qualified
-      let literal = Literal unit (StringLiteral "Hello world!")
-      let app = App unit var literal
-      let binding = Tuple (Tuple unit ident) app
-      let decl = Bind [binding]
-      assertEqual x.moduleDecls [ decl ]
+      let xIdent = Ident "x"
+      let xLiteral = Literal unit (StringLiteral "x")
+      let xBinding = Tuple (Tuple unit xIdent) xLiteral
+      let xDecl = Bind [ xBinding ]
+
+      let yIdent = Ident "y"
+      let yLiteral = Literal unit (StringLiteral "y")
+      let yBinding = Tuple (Tuple unit yIdent) yLiteral
+      let yDecl = Bind [ yBinding ]
+
+      assertEqual x.moduleDecls [ xDecl, yDecl ]
 
   -- |
   -- Foreign declarations
