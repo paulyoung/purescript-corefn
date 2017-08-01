@@ -8,7 +8,9 @@ module CoreFn.Ident
   ) where
 
 import Prelude
-import Data.Foreign (F, Foreign, parseJSON, readString)
+
+import Data.Foreign (F, Foreign, readString)
+import Data.Foreign.JSON (parseJSON)
 import Data.Generic (gShow, class Generic)
 import Data.Maybe (Maybe)
 

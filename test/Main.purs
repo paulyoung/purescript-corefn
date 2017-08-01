@@ -9,7 +9,7 @@ import Test.CoreFn.Ident (testIdent)
 import Test.CoreFn.Module (testModule)
 import Test.CoreFn.Names (testNames)
 
-main :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
+main :: forall e. Eff (console :: CONSOLE, exception :: EXCEPTION | e) Unit
 main = do
   testIdent
   testNames

@@ -7,11 +7,12 @@ module CoreFn.Util
   ) where
 
 import Prelude
-import Data.Foreign.Keys as K
+
 import Control.Error.Util (exceptNoteA)
 import Data.Array (head)
 import Data.Foreign (F, Foreign, ForeignError(ForeignError))
-import Data.Foreign.Index (prop)
+import Data.Foreign.Index (readProp)
+import Data.Foreign.Keys as K
 import Data.Identity (Identity(..))
 import Data.List.NonEmpty (singleton)
 import Data.Traversable (traverse)
@@ -30,7 +31,7 @@ objectProps x = do
 
   toPair :: String -> F Pair
   toPair key = do
-    value <- prop key x
+    value <- readProp key x
     pure $ { key, value }
 
 -- |
