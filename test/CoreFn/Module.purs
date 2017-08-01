@@ -15,7 +15,7 @@ import Data.List.NonEmpty (singleton)
 import Data.Tuple (Tuple(..))
 import Test.Util (assertEqual, expectFailure, expectSuccess)
 
-testModule :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
+testModule :: forall e. Eff (console :: CONSOLE, exception :: EXCEPTION | e) Unit
 testModule = do
   log ""
   log "Test Module"

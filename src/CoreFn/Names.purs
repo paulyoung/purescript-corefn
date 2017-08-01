@@ -14,9 +14,11 @@ module CoreFn.Names
   ) where
 
 import Prelude
+
 import Control.Error.Util (exceptNoteM)
 import Data.Array (init, last, null)
-import Data.Foreign (F, Foreign, ForeignError(..), parseJSON, readString)
+import Data.Foreign (F, Foreign, ForeignError(..), readString)
+import Data.Foreign.JSON (parseJSON)
 import Data.Generic (class Generic, gShow)
 import Data.List.NonEmpty (singleton)
 import Data.List.Types (NonEmptyList)

@@ -11,7 +11,7 @@ import CoreFn.Names (ModuleName(..), OpName(..), ProperName(..), Qualified(..), 
 import Data.Maybe (Maybe(..))
 import Test.Util (assertEqual, expectSuccess)
 
-testNames :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
+testNames :: forall e. Eff (console :: CONSOLE, exception :: EXCEPTION | e) Unit
 testNames = do
   log ""
   log "Test Names"

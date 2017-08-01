@@ -5,13 +5,14 @@ module CoreFn.Module
   ) where
 
 import Prelude
+
 import CoreFn.Expr (Bind, readBind)
 import CoreFn.Ident (Ident, readIdent)
 import CoreFn.Names (ModuleName(..), readModuleName)
 import CoreFn.Util (objectProp)
-import Data.Foreign (F, Foreign, parseJSON, readArray, readString)
-import Data.Foreign.Class (readProp)
-import Data.Foreign.Index (class Index, prop)
+import Data.Foreign (F, Foreign, readArray, readString)
+import Data.Foreign.Index (class Index, index, readProp)
+import Data.Foreign.JSON (parseJSON)
 import Data.Traversable (traverse)
 
 -- |
@@ -48,7 +49,7 @@ readModule :: Foreign -> F (Module Unit)
 readModule x = do
   o <- objectProp "Module name not found" x
 
-  builtWith     <- prop "builtWith" o.value >>= readString
+  builtWith     <- readProp "builtWith" o.value >>= readString
   moduleDecls   <- traverseArrayProp "decls"   o.value readBind
   moduleExports <- traverseArrayProp "exports" o.value readIdent
   moduleForeign <- traverseArrayProp "foreign" o.value readIdent
@@ -68,13 +69,13 @@ readModule x = do
   where
 
   traverseArrayProp
-    :: forall a i
-     . (Index i)
-    => i
+    :: forall a b
+     . (Index a)
+    => a
     -> Foreign
-    -> (Foreign -> F a)
-    -> F (Array a)
-  traverseArrayProp prop value f = readProp prop value >>= readArray >>= traverse f
+    -> (Foreign -> F b)
+    -> F (Array b)
+  traverseArrayProp i value f = index value i >>= readArray >>= traverse f
 
 readModuleJSON :: String -> F (Module Unit)
 readModuleJSON = parseJSON >=> readModule

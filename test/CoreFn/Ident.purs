@@ -9,7 +9,7 @@ import Control.Monad.Eff.Exception (EXCEPTION)
 import CoreFn.Ident (Ident(..), readIdentJSON)
 import Test.Util (assertEqual, expectSuccess)
 
-testIdent :: forall e. Eff (console :: CONSOLE, err :: EXCEPTION | e) Unit
+testIdent :: forall e. Eff (console :: CONSOLE, exception :: EXCEPTION | e) Unit
 testIdent = do
   log ""
   log "Test Ident"
