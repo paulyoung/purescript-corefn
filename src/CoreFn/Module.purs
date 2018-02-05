@@ -1,14 +1,17 @@
 module CoreFn.Module
-  ( Module(..)
-  , readModule
-  , readModuleJSON
+  ( FilePath(..)
+  , Module(..)
+  , Version(..)
+  -- , readModule
+  -- , readModuleJSON
   ) where
 
 import Prelude
 
-import CoreFn.Expr (Bind, readBind)
-import CoreFn.Ident (Ident, readIdent)
-import CoreFn.Names (ModuleName(..), readModuleName)
+import CoreFn.Ann (Comment)
+import CoreFn.Expr (Bind)
+import CoreFn.Ident (Ident)
+import CoreFn.Names (ModuleName(..))
 import CoreFn.Util (objectProp)
 import Data.Foreign (F, Foreign, readArray, readString)
 import Data.Foreign.Index (class Index, index, readProp)
@@ -19,63 +22,90 @@ import Data.Traversable (traverse)
 -- The CoreFn module representation
 --
 data Module a = Module
-  { builtWith :: String
-  , moduleDecls :: Array (Bind a)
+  { moduleComments :: Array Comment
+  , moduleName :: ModuleName
+  , modulePath :: FilePath
+  , moduleImports :: Array ModuleName
   , moduleExports :: Array Ident
   , moduleForeign :: Array Ident
-  , moduleImports :: Array ModuleName
-  , moduleName :: ModuleName
+  , moduleDecls :: Array (Bind a)
   }
 
 derive instance eqModule :: Eq a => Eq (Module a)
 derive instance ordModule :: Ord a => Ord (Module a)
 
 instance showModule :: Show a => Show (Module a) where
-  show (Module { builtWith
-               , moduleDecls
-               , moduleExports
-               , moduleForeign
-               , moduleImports
-               , moduleName }) =
-       "(Module { builtWith: " <> show builtWith <>
-               ", moduleName: " <> show moduleName <>
-               ", moduleDecls: " <> show moduleDecls <>
-               ", moduleExports: " <> show moduleExports <>
-               ", moduleForeign: " <> show moduleForeign <>
-               ", moduleImports: " <> show moduleImports <>
-               "})"
+  show (Module m) =
+    "(Module " <>
+      "{ moduleComments: " <> show moduleComments <>
+      ", moduleName: " <> show moduleName <>
+      ", modulePath: " <> show modulePath <>
+      ", moduleImports: " <> show moduleImports <>
+      ", moduleExports: " <> show moduleExports <>
+      ", moduleForeign: " <> show moduleForeign <>
+      ", moduleDecls: " <> show moduleDecls <>
+      "}" <>
+    ")"
+    where
+      { moduleComments
+      , moduleName
+      , modulePath
+      , moduleImports
+      , moduleExports
+      , moduleForeign
+      , moduleDecls
+      } = m
 
-readModule :: Foreign -> F (Module Unit)
-readModule x = do
-  o <- objectProp "Module name not found" x
 
-  builtWith     <- readProp "builtWith" o.value >>= readString
-  moduleDecls   <- traverseArrayProp "decls"   o.value readBind
-  moduleExports <- traverseArrayProp "exports" o.value readIdent
-  moduleForeign <- traverseArrayProp "foreign" o.value readIdent
-  moduleImports <- traverseArrayProp "imports" o.value readModuleName
+newtype Version = Version String
 
-  let moduleName = ModuleName o.key
+derive newtype instance eqVersion :: Eq Version
+derive newtype instance ordVersion :: Ord Version
 
-  pure $ Module
-    { builtWith
-    , moduleDecls
-    , moduleExports
-    , moduleForeign
-    , moduleImports
-    , moduleName
-    }
+instance showVersion :: Show Version where
+  show (Version v) = "(Version " <> show v <> ")"
 
-  where
 
-  traverseArrayProp
-    :: forall a b
-     . (Index a)
-    => a
-    -> Foreign
-    -> (Foreign -> F b)
-    -> F (Array b)
-  traverseArrayProp i value f = index value i >>= readArray >>= traverse f
+newtype FilePath = FilePath String
 
-readModuleJSON :: String -> F (Module Unit)
-readModuleJSON = parseJSON >=> readModule
+derive newtype instance eqFilePath :: Eq FilePath
+derive newtype instance ordFilePath :: Ord FilePath
+
+instance showFilePath :: Show FilePath where
+  show (FilePath s) = "(FilePath " <> show s <> ")"
+
+
+-- readModule :: Foreign -> F (Module Unit)
+-- readModule x = do
+--   o <- objectProp "Module name not found" x
+
+--   builtWith     <- readProp "builtWith" o.value >>= readString
+--   moduleDecls   <- traverseArrayProp "decls"   o.value readBind
+--   moduleExports <- traverseArrayProp "exports" o.value readIdent
+--   moduleForeign <- traverseArrayProp "foreign" o.value readIdent
+--   moduleImports <- traverseArrayProp "imports" o.value readModuleName
+
+--   let moduleName = ModuleName o.key
+
+--   pure $ Module
+--     { builtWith: Version builtWith
+--     , moduleDecls
+--     , moduleExports
+--     , moduleForeign
+--     , moduleImports
+--     , moduleName
+--     }
+
+--   where
+
+--   traverseArrayProp
+--     :: forall a b
+--      . (Index a)
+--     => a
+--     -> Foreign
+--     -> (Foreign -> F b)
+--     -> F (Array b)
+--   traverseArrayProp i value f = index value i >>= readArray >>= traverse f
+
+-- readModuleJSON :: String -> F (Module Unit)
+-- readModuleJSON = parseJSON >=> readModule

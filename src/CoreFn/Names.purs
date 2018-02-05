@@ -3,14 +3,14 @@ module CoreFn.Names
   , OpName(..)
   , ProperName(..)
   , Qualified(..)
-  , readModuleName
-  , readModuleNameJSON
-  , readOpName
-  , readOpNameJSON
-  , readProperName
-  , readProperNameJSON
-  , readQualified
-  , readQualifiedJSON
+  -- , readModuleName
+  -- , readModuleNameJSON
+  -- , readOpName
+  -- , readOpNameJSON
+  -- , readProperName
+  -- , readProperNameJSON
+  -- , readQualified
+  -- , readQualifiedJSON
   ) where
 
 import Prelude
@@ -29,7 +29,7 @@ import Data.String (Pattern(..), joinWith, split)
 -- |
 -- Module names
 --
-newtype ModuleName = ModuleName String
+newtype ModuleName = ModuleName (Array ProperName)
 
 derive instance eqModuleName :: Eq ModuleName
 derive instance genericModuleName :: Generic ModuleName
@@ -37,11 +37,11 @@ derive instance newtypeModuleName :: Newtype ModuleName _
 derive instance ordModuleName :: Ord ModuleName
 derive newtype instance showModuleName :: Show ModuleName
 
-readModuleName :: Foreign -> F ModuleName
-readModuleName x = ModuleName <$> readString x
+-- readModuleName :: Foreign -> F ModuleName
+-- readModuleName x = ModuleName <$> readString x
 
-readModuleNameJSON :: String -> F ModuleName
-readModuleNameJSON = parseJSON >=> readModuleName
+-- readModuleNameJSON :: String -> F ModuleName
+-- readModuleNameJSON = parseJSON >=> readModuleName
 
 -- |
 -- Operator alias names.
@@ -54,11 +54,11 @@ derive instance newtypeOpName :: Newtype OpName _
 derive instance ordOpName :: Ord OpName
 derive newtype instance showOpName :: Show OpName
 
-readOpName :: Foreign -> F OpName
-readOpName x = OpName <$> readString x
+-- readOpName :: Foreign -> F OpName
+-- readOpName x = OpName <$> readString x
 
-readOpNameJSON :: String -> F OpName
-readOpNameJSON = parseJSON >=> readOpName
+-- readOpNameJSON :: String -> F OpName
+-- readOpNameJSON = parseJSON >=> readOpName
 
 -- |
 -- Proper name, i.e. capitalized names for e.g. module names, type/data
@@ -72,11 +72,11 @@ derive instance newtypeProperName :: Newtype ProperName _
 derive instance ordProperName :: Ord ProperName
 derive newtype instance showProperName :: Show ProperName
 
-readProperName :: Foreign -> F ProperName
-readProperName x = ProperName <$> readString x
+-- readProperName :: Foreign -> F ProperName
+-- readProperName x = ProperName <$> readString x
 
-readProperNameJSON :: String -> F ProperName
-readProperNameJSON = parseJSON >=> readProperName
+-- readProperNameJSON :: String -> F ProperName
+-- readProperNameJSON = parseJSON >=> readProperName
 
 -- |
 -- A qualified name, i.e. a name with an optional module name
@@ -84,41 +84,45 @@ readProperNameJSON = parseJSON >=> readProperName
 data Qualified a = Qualified (Maybe ModuleName) a
 
 derive instance eqQualified :: (Generic a, Eq a) => Eq (Qualified a)
-derive instance genericQualified :: (Generic a) => Generic (Qualified a)
+-- derive instance genericQualified :: (Generic a) => Generic (Qualified a)
 derive instance ordQualified :: (Generic a, Ord a) => Ord (Qualified a)
 
-instance showQualified :: (Generic a, Show a) => Show (Qualified a) where
-  show = gShow
+-- instance showQualified :: (Generic a, Show a) => Show (Qualified a) where
+--   show = gShow
 
-readQualified :: forall a. (String -> a) -> Foreign -> F (Qualified a)
-readQualified ctor = readString >=> toQualified ctor
+instance showQualified :: Show a => Show (Qualified a) where
+  show (Qualified m a) = "(Qualified " <> show m <> show a <> ")"
 
-  where
 
-  arrayToMaybe :: forall b. Array b -> Maybe (Array b)
-  arrayToMaybe xs | null xs = Nothing
-                  | otherwise = Just xs
+-- readQualified :: forall a. (String -> a) -> Foreign -> F (Qualified a)
+-- readQualified ctor = readString >=> toQualified ctor
 
-  init' :: forall b. Array b -> Maybe (Array b)
-  init' = init >=> arrayToMaybe
+--   where
 
-  delimiter = "."
+--   arrayToMaybe :: forall b. Array b -> Maybe (Array b)
+--   arrayToMaybe xs | null xs = Nothing
+--                   | otherwise = Just xs
 
-  toModuleName :: Array String -> ModuleName
-  toModuleName = ModuleName <<< (joinWith delimiter)
+--   init' :: forall b. Array b -> Maybe (Array b)
+--   init' = init >=> arrayToMaybe
 
-  toQualified' :: (String -> a) -> String -> Maybe (Qualified a)
-  toQualified' c s = do
-    let parts = split (Pattern delimiter) s
-    lastPart <- last parts
-    let moduleName = toModuleName <$> init' parts
-    Just $ Qualified moduleName (c lastPart)
+--   delimiter = "."
 
-  toQualified :: (String -> a) -> String -> F (Qualified a)
-  toQualified c s = exceptNoteM (toQualified' c s) errors
+--   toModuleName :: Array String -> ModuleName
+--   toModuleName = ModuleName <<< (joinWith delimiter)
 
-  errors :: NonEmptyList ForeignError
-  errors = singleton (ForeignError "Error parsing qualified name")
+--   toQualified' :: (String -> a) -> String -> Maybe (Qualified a)
+--   toQualified' c s = do
+--     let parts = split (Pattern delimiter) s
+--     lastPart <- last parts
+--     let moduleName = toModuleName <$> init' parts
+--     Just $ Qualified moduleName (c lastPart)
 
-readQualifiedJSON :: forall a. (String -> a) -> String -> F (Qualified a)
-readQualifiedJSON ctor = parseJSON >=> readQualified ctor
+--   toQualified :: (String -> a) -> String -> F (Qualified a)
+--   toQualified c s = exceptNoteM (toQualified' c s) errors
+
+--   errors :: NonEmptyList ForeignError
+--   errors = singleton (ForeignError "Error parsing qualified name")
+
+-- readQualifiedJSON :: forall a. (String -> a) -> String -> F (Qualified a)
+-- readQualifiedJSON ctor = parseJSON >=> readQualified ctor
