@@ -6,23 +6,38 @@ import CoreFn.Meta (Meta)
 import CoreFn.Names (OpName, ProperName, Qualified)
 import Data.Array as Array
 import Data.Maybe (Maybe(..))
+import Data.Newtype (class Newtype)
 
 -- |
 -- Type alias for basic annotations
 --
-type Ann =
+newtype Ann = Ann
   { sourceSpan :: SourceSpan
   , comments :: Array Comment
   , type :: Maybe Type
   , meta :: Maybe Meta
   }
 
+derive instance newtypeAnn :: Newtype Ann _
+derive instance eqAnn :: Eq Ann
+derive instance ordAnn :: Ord Ann
+
+instance showAnn :: Show Ann where
+  show (Ann ann) =
+    "(Ann " <>
+      "{ sourceSpan: " <> show ann.sourceSpan <>
+      ", comments: " <> show ann.comments <>
+      ", type: " <> show ann.type <>
+      ", meta: " <> show ann.meta <>
+      "}" <>
+    ")"
+
 -- |
 -- An annotation empty of metadata aside from a source span.
 --
 ssAnn :: SourceSpan -> Ann
-ssAnn ss =
-  { sourceSpan: ss
+ssAnn = Ann <<<
+  { sourceSpan: _
   , comments: []
   , type: Nothing
   , meta: Nothing
@@ -32,7 +47,7 @@ ssAnn ss =
 -- Remove the comments from an annotation
 --
 removeComments :: Ann -> Ann
-removeComments ss = ss { comments = [] }
+removeComments (Ann ann) = Ann $ ann { comments = [] }
 
 
 -- |
