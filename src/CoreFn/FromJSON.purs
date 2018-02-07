@@ -7,6 +7,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.MonadPlus (class Plus, empty)
 import CoreFn.Ann (Ann(..), SourcePos(..), SourceSpan(..))
+import CoreFn.Ident (Ident(..))
 import CoreFn.Meta (ConstructorType(..), Meta)
 import CoreFn.Module (FilePath(..), Module(..), ModuleImport(..), Version(..))
 import CoreFn.Names (ModuleName(..), ProperName(..))
@@ -65,7 +66,8 @@ annFromJSON modulePath = object \json -> do
 
 -- literalFromJSON
 
--- identFromJSON
+identFromJSON :: Foreign -> F Ident
+identFromJSON = map Ident <<< readString
 
 properNameFromJSON :: Foreign -> F ProperName
 properNameFromJSON = map ProperName <<< readString
@@ -91,10 +93,17 @@ moduleFromJSON = parseJSON >=> moduleFromObj
       >>= readArray
       >>= traverse (importFromJSON modulePath)
 
-    moduleExports <- pure []
+    moduleExports <- readProp "exports" json
+      >>= readArray
+      >>= traverse identFromJSON
+
     moduleDecls <- pure []
-    moduleForeign <- pure []
-    moduleComments <- pure []
+
+    moduleForeign <- readProp "foreign" json
+      >>= readArray
+      >>= traverse identFromJSON
+
+    moduleComments <- pure [] -- TODO commentFromJSON
 
     pure
       { version
