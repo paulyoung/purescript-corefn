@@ -7,6 +7,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.MonadPlus (class Plus, empty)
 import CoreFn.Ann (Ann(..), Comment(..), SourcePos(..), SourceSpan(..))
+import CoreFn.Expr (Bind(..), Expr, Bind')
 import CoreFn.Ident (Ident(..))
 import CoreFn.Meta (ConstructorType(..), Meta)
 import CoreFn.Module (FilePath(..), Module(..), ModuleImport(..), Version(..))
@@ -19,6 +20,7 @@ import Data.Foreign.Keys (keys)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Traversable (sequence, traverse)
+import Data.Tuple (Tuple(..))
 
 objectType :: String
 objectType = "object"
@@ -147,11 +149,28 @@ moduleFromJSON = parseJSON >=> moduleFromObj
 
     invalidComment :: Foreign -> F Comment
     invalidComment = keys >=> Array.head >>> case _ of
-      Just type_ -> fail $ ForeignError $ "Unknown Comment " <> type_
+      Just type_ -> fail $ ForeignError $ "Unknown Comment type: " <> type_
       Nothing -> fail $ ForeignError "Invalid Comment"
 
--- bindFromJSON :: FilePath -> Foreign -> F (Bind Ann)
--- bindFromJSON modulePath = object
+bindFromJSON :: FilePath -> Foreign -> F (Bind Ann)
+bindFromJSON modulePath = object \json -> do
+  type_ <- readProp "bindType" json >>= readString
+  case type_ of
+    "NonRec" -> NonRec <$> bindFromObj json
+    "Rec" ->
+      map Rec
+        $ readProp "binds" json
+        >>= readArray
+        >>= traverse (object bindFromObj)
+    _ -> fail $ ForeignError $ "Unknown Bind type: " <> type_
+  where
+  bindFromObj :: Foreign -> F (Bind' Ann)
+  bindFromObj json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    ident <- readProp "identifier" json >>= identFromJSON
+    -- expr <- readProp "expression" >>= exprFromJSON modulePath
+    expr <- fail $ ForeignError "FIXME"
+    pure $ Tuple (Tuple ann ident) expr
 
 -- recordFromJSON
 

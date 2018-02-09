@@ -3,6 +3,7 @@
 --
 module CoreFn.Expr
   ( Bind(..)
+  , Bind'
   , Expr(..)
   , Literal(..)
   -- , readBind
@@ -171,13 +172,18 @@ instance showExpr :: Show a => Show (Expr a) where
 -- |
 --  A let or module binding.
 --
-data Bind a = Bind (Array (Tuple (Tuple a Ident) (Expr a)))
+data Bind a
+  = NonRec (Bind' a)
+  | Rec (Array (Bind' a))
+
+type Bind' a = Tuple (Tuple a Ident) (Expr a)
 
 derive instance eqBind :: Eq a => Eq (Bind a)
 derive instance ordBind :: Ord a => Ord (Bind a)
 
 instance showBind :: Show a => Show (Bind a) where
-  show (Bind x) = "(Bind " <> show x <> ")"
+  show (NonRec b) = "(NonRec " <> show b <> ")"
+  show (Rec b) = "(Rec " <> show b <> ")"
 
 -- readBind :: Foreign -> F (Bind Unit)
 -- readBind x = do
