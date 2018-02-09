@@ -196,6 +196,7 @@ exprFromJSON modulePath = object \json -> do
     -- "Let" -> letFromJSON json
     _ -> fail $ ForeignError $ "Unknown Expr type: " <> type_
   where
+  varFromJSON :: Foreign -> F (Expr Ann)
   varFromJSON json = do
     ann <- readProp "annotation" json >>= annFromJSON modulePath
     qi <- readProp "value" json >>= qualifiedFromJSON Ident
