@@ -5,21 +5,20 @@ module CoreFn.FromJSON where
 import Prelude
 
 import Control.Alt ((<|>))
-import Control.MonadPlus (class Plus, empty)
 import CoreFn.Ann (Ann(..), Comment(..), SourcePos(..), SourceSpan(..))
 import CoreFn.Expr (Bind(..), Bind', Expr(..))
 import CoreFn.Ident (Ident(..))
-import CoreFn.Meta (ConstructorType(..), Meta)
+import CoreFn.Meta (ConstructorType(..), Meta(..))
 import CoreFn.Module (FilePath(..), Module(..), ModuleImport(..), Version(..))
 import CoreFn.Names (ModuleName(..), ProperName(..), Qualified(..))
 import Data.Array as Array
-import Data.Foreign (F, Foreign, ForeignError(..), fail, isNull, readArray, readInt, readNull, readString, typeOf)
+import Data.Foreign (F, Foreign, ForeignError(ForeignError, TypeMismatch), fail, readArray, readInt, readNull, readString, typeOf)
 import Data.Foreign.Index (index, readProp)
 import Data.Foreign.JSON (parseJSON)
 import Data.Foreign.Keys (keys)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
-import Data.Traversable (sequence, traverse)
+import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 
 objectType :: String
@@ -30,30 +29,34 @@ object _ json
   | typ <- typeOf json, typ /= objectType = fail $ TypeMismatch objectType typ
 object f json = f json
 
-nullable :: forall f a. Plus f => (Foreign -> F (f a)) -> Foreign -> F (f a)
-nullable _ json | isNull json = pure empty
-nullable f json = f json
+constructorTypeFromJSON :: Foreign -> F ConstructorType
+constructorTypeFromJSON json = do
+  type_ <- readString json
+  case type_ of
+    "ProductType" -> pure ProductType
+    "SumType" -> pure SumType
+    _ -> fail $ ForeignError $ "Unknown ConstructorType: " <> type_
 
--- constructorTypeFromJSON :: String -> F ConstructorType
--- constructorTypeFromJSON = parseJSON >=> constructorTypeFromJSON'
---   where
---   constructorTypeFromJSON' :: Foreign -> F ConstructorType
---   constructorTypeFromJSON' f = do
---     str <- readString f
---     case str of
---       "ProductType" -> pure ProductType
---       "SumType" -> pure SumType
---       _ -> fail $ ForeignError $ "Unknown ConstructorType: " <> str
-
-metaFromJSON :: Foreign -> F (Maybe Meta)
-metaFromJSON = nullable >>> object $ \json -> do
-  -- type_ <-
-  pure Nothing
+metaFromJSON :: Foreign -> F Meta
+metaFromJSON = object $ \json -> do
+  type_ <- readProp "metaType" json >>= readString
+  case type_ of
+    "IsConstructor" -> isConstructorFromJSON json
+    "IsNewType" -> pure IsNewtype
+    "IsTypeClassConstructor" -> pure IsTypeClassConstructor
+    "IsForeign" -> pure IsForeign
+    _ -> fail $ ForeignError $ "Unknown Meta type :" <> type_
+  where
+  isConstructorFromJSON :: Foreign -> F Meta
+  isConstructorFromJSON json = do
+    ct <- readProp "constructorType" json >>= constructorTypeFromJSON
+    is <- readProp "identifiers" json >>= readArray >>= traverse identFromJSON
+    pure $ IsConstructor ct is
 
 annFromJSON :: FilePath -> Foreign -> F Ann
 annFromJSON modulePath = object \json -> do
   sourceSpan <- readProp "sourceSpan" json >>= sourceSpanFromJSON
-  meta <- readProp "meta" json >>= metaFromJSON
+  meta <- readProp "meta" json >>= readNull >>= traverse metaFromJSON
   pure $ Ann { sourceSpan, comments: [], type: Nothing, meta }
   where
   sourceSpanFromJSON :: Foreign -> F SourceSpan
