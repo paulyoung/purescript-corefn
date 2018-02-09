@@ -124,9 +124,7 @@ moduleFromJSON = parseJSON >=> moduleFromObj
     :: FilePath
     -> Foreign
     -> F ModuleImport
-  importFromJSON _ json
-    | typ <- typeOf json, typ /= objectType = fail $ TypeMismatch objectType typ
-  importFromJSON modulePath json = do
+  importFromJSON modulePath = object \json -> do
     ann <- readProp "annotation" json >>= annFromJSON modulePath
     moduleName <- readProp "moduleName" json >>= moduleNameFromJSON
     pure $ ModuleImport { ann,  moduleName }
@@ -143,7 +141,8 @@ moduleFromJSON = parseJSON >=> moduleFromObj
       readProp "LineComment" >=> map LineComment <<< readString
 
 
--- bindFromJSON
+-- bindFromJSON :: FilePath -> Foreign -> F (Bind Ann)
+-- bindFromJSON modulePath = object
 
 -- recordFromJSON
 
