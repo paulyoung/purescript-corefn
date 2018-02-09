@@ -11,9 +11,11 @@ import CoreFn.Ident (Ident(..))
 import CoreFn.Meta (ConstructorType(..), Meta)
 import CoreFn.Module (FilePath(..), Module(..), ModuleImport(..), Version(..))
 import CoreFn.Names (ModuleName(..), ProperName(..))
+import Data.Array as Array
 import Data.Foreign (F, Foreign, ForeignError(..), fail, isNull, readArray, readInt, readString, typeOf)
 import Data.Foreign.Index (index, readProp)
 import Data.Foreign.JSON (parseJSON)
+import Data.Foreign.Keys (keys)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Traversable (sequence, traverse)
@@ -130,7 +132,10 @@ moduleFromJSON = parseJSON >=> moduleFromObj
     pure $ ModuleImport { ann,  moduleName }
 
   commentFromJSON :: Foreign -> F Comment
-  commentFromJSON json = lineCommentFromJSON json <|> blockCommentFromJSON json
+  commentFromJSON json =
+    lineCommentFromJSON json
+      <|> blockCommentFromJSON json
+      <|> invalidComment json
     where
     blockCommentFromJSON :: Foreign -> F Comment
     blockCommentFromJSON =
@@ -140,6 +145,10 @@ moduleFromJSON = parseJSON >=> moduleFromObj
     lineCommentFromJSON =
       readProp "LineComment" >=> map LineComment <<< readString
 
+    invalidComment :: Foreign -> F Comment
+    invalidComment = keys >=> Array.head >>> case _ of
+      Just type_ -> fail $ ForeignError $ "Unknown Comment " <> type_
+      Nothing -> fail $ ForeignError "Invalid Comment"
 
 -- bindFromJSON :: FilePath -> Foreign -> F (Bind Ann)
 -- bindFromJSON modulePath = object
