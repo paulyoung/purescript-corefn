@@ -6,7 +6,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.MonadPlus (class Plus, empty)
-import CoreFn.Ann (Ann(..), SourcePos(..), SourceSpan(..))
+import CoreFn.Ann (Ann(..), Comment(..), SourcePos(..), SourceSpan(..))
 import CoreFn.Ident (Ident(..))
 import CoreFn.Meta (ConstructorType(..), Meta)
 import CoreFn.Module (FilePath(..), Module(..), ModuleImport(..), Version(..))
@@ -103,7 +103,9 @@ moduleFromJSON = parseJSON >=> moduleFromObj
       >>= readArray
       >>= traverse identFromJSON
 
-    moduleComments <- pure [] -- TODO commentFromJSON
+    moduleComments <- readProp "comments" json
+      >>= readArray
+      >>= traverse commentFromJSON
 
     pure
       { version
@@ -128,6 +130,18 @@ moduleFromJSON = parseJSON >=> moduleFromObj
     ann <- readProp "annotation" json >>= annFromJSON modulePath
     moduleName <- readProp "moduleName" json >>= moduleNameFromJSON
     pure $ ModuleImport { ann,  moduleName }
+
+  commentFromJSON :: Foreign -> F Comment
+  commentFromJSON json = lineCommentFromJSON json <|> blockCommentFromJSON json
+    where
+    blockCommentFromJSON :: Foreign -> F Comment
+    blockCommentFromJSON =
+      readProp "BlockComment" >=> map BlockComment <<< readString
+
+    lineCommentFromJSON :: Foreign -> F Comment
+    lineCommentFromJSON =
+      readProp "LineComment" >=> map LineComment <<< readString
+
 
 -- bindFromJSON
 
