@@ -7,13 +7,13 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.MonadPlus (class Plus, empty)
 import CoreFn.Ann (Ann(..), Comment(..), SourcePos(..), SourceSpan(..))
-import CoreFn.Expr (Bind(..), Expr, Bind')
+import CoreFn.Expr (Bind(..), Bind', Expr(..))
 import CoreFn.Ident (Ident(..))
 import CoreFn.Meta (ConstructorType(..), Meta)
 import CoreFn.Module (FilePath(..), Module(..), ModuleImport(..), Version(..))
-import CoreFn.Names (ModuleName(..), ProperName(..))
+import CoreFn.Names (ModuleName(..), ProperName(..), Qualified(..))
 import Data.Array as Array
-import Data.Foreign (F, Foreign, ForeignError(..), fail, isNull, readArray, readInt, readString, typeOf)
+import Data.Foreign (F, Foreign, ForeignError(..), fail, isNull, readArray, readInt, readNull, readString, typeOf)
 import Data.Foreign.Index (index, readProp)
 import Data.Foreign.JSON (parseJSON)
 import Data.Foreign.Keys (keys)
@@ -76,17 +76,21 @@ identFromJSON = map Ident <<< readString
 properNameFromJSON :: Foreign -> F ProperName
 properNameFromJSON = map ProperName <<< readString
 
--- qualifiedFromJSON
+qualifiedFromJSON :: forall a. (String -> a) -> Foreign -> F (Qualified a)
+qualifiedFromJSON f = object \json -> do
+  mn <- readProp "moduleName" json >>= readNull >>= traverse moduleNameFromJSON
+  i <- readProp "identifier" json >>= map f <<< readString
+  pure $ Qualified mn i
 
 moduleNameFromJSON :: Foreign -> F ModuleName
 moduleNameFromJSON json = map ModuleName $ readArray json
   >>= traverse properNameFromJSON
 
 moduleFromJSON :: String -> F { version :: Version, module :: Module Ann }
-moduleFromJSON = parseJSON >=> moduleFromObj
+moduleFromJSON = parseJSON >=> moduleFromJSON'
   where
-  moduleFromObj :: Foreign -> F { version :: Version, module :: Module Ann }
-  moduleFromObj = object \json -> do
+  moduleFromJSON' :: Foreign -> F { version :: Version, module :: Module Ann }
+  moduleFromJSON' = object \json -> do
     version <- map Version $ readProp "builtWith" json >>= readString
 
     moduleName <- readProp "moduleName" json >>= moduleNameFromJSON
@@ -156,16 +160,16 @@ bindFromJSON :: FilePath -> Foreign -> F (Bind Ann)
 bindFromJSON modulePath = object \json -> do
   type_ <- readProp "bindType" json >>= readString
   case type_ of
-    "NonRec" -> NonRec <$> bindFromObj json
+    "NonRec" -> NonRec <$> bindFromJSON' json
     "Rec" ->
       map Rec
         $ readProp "binds" json
         >>= readArray
-        >>= traverse (object bindFromObj)
+        >>= traverse (object bindFromJSON')
     _ -> fail $ ForeignError $ "Unknown Bind type: " <> type_
   where
-  bindFromObj :: Foreign -> F (Bind' Ann)
-  bindFromObj json = do
+  bindFromJSON' :: Foreign -> F (Bind' Ann)
+  bindFromJSON' json = do
     ann <- readProp "annotation" json >>= annFromJSON modulePath
     ident <- readProp "identifier" json >>= identFromJSON
     -- expr <- readProp "expression" >>= exprFromJSON modulePath
@@ -174,7 +178,34 @@ bindFromJSON modulePath = object \json -> do
 
 -- recordFromJSON
 
--- exprFromJSON
+exprFromJSON :: FilePath -> Foreign -> F (Expr Ann)
+exprFromJSON modulePath = object \json -> do
+  type_ <- readProp "type" json >>= readString
+  case type_ of
+    "Var" -> varFromJSON json
+    -- "Literal" -> literalFromJSON json
+    -- "Constructor" -> constructorFromJSON json
+    -- "Accessor" -> accessorFromJSON json
+    -- "ObjectUpdate" -> objectUpdateFromJSON json
+    -- "Abs" -> absFromJSON json
+    -- "App" -> appFromJSON json
+    -- "Case" -> caseFromJSON json
+    -- "Let" -> letFromJSON json
+    _ -> fail $ ForeignError $ "Unknown Expr type: " <> type_
+  where
+  varFromJSON json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    qi <- readProp "value" json >>= qualifiedFromJSON Ident
+    pure $ Var ann qi
+    
+  -- literalFromJSON json = do
+  -- constructorFromJSON json = do
+  -- accessorFromJSON json = do
+  -- objectUpdateFromJSON json = do
+  -- absFromJSON json = do
+  -- appFromJSON json = do
+  -- caseFromJSON json = do
+  -- letFromJSON json = do
 
 -- caseAlternativeFromJSON
 
