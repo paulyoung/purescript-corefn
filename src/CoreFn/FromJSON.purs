@@ -203,8 +203,7 @@ bindFromJSON modulePath = object \json -> do
   bindFromJSON' json = do
     ann <- readProp "annotation" json >>= annFromJSON modulePath
     ident <- readProp "identifier" json >>= identFromJSON
-    -- expr <- readProp "expression" >>= exprFromJSON modulePath
-    expr <- fail $ ForeignError "FIXME"
+    expr <- readProp "expression" json >>= exprFromJSON modulePath
     pure $ Tuple (Tuple ann ident) expr
 
 recordFromJSON
