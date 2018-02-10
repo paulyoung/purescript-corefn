@@ -223,10 +223,10 @@ exprFromJSON modulePath = object \json -> do
     "Var" -> varFromJSON json
     "Literal" -> literalExprFromJSON json
     "Constructor" -> constructorFromJSON json
-    -- "Accessor" -> accessorFromJSON json
-    -- "ObjectUpdate" -> objectUpdateFromJSON json
-    -- "Abs" -> absFromJSON json
-    -- "App" -> appFromJSON json
+    "Accessor" -> accessorFromJSON json
+    "ObjectUpdate" -> objectUpdateFromJSON json
+    "Abs" -> absFromJSON json
+    "App" -> appFromJSON json
     -- "Case" -> caseFromJSON json
     -- "Let" -> letFromJSON json
     _ -> fail $ ForeignError $ "Unknown Expr type: " <> type_
@@ -251,17 +251,33 @@ exprFromJSON modulePath = object \json -> do
     is  <- readProp "fieldNames" json >>= readArray >>= traverse identFromJSON
     pure $ Constructor ann tyn con is
 
-  -- accessorFromJSON :: Foreign -> F (Expr Ann)
-  -- accessorFromJSON json = do
+  accessorFromJSON :: Foreign -> F (Expr Ann)
+  accessorFromJSON json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    f <- readProp "fieldName" json >>= readString
+    e <- readProp "expression" json >>= exprFromJSON modulePath
+    pure $ Accessor ann f e
 
-  -- objectUpdateFromJSON :: Foreign -> F (Expr Ann)
-  -- objectUpdateFromJSON json = do
+  objectUpdateFromJSON :: Foreign -> F (Expr Ann)
+  objectUpdateFromJSON json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    e <- readProp "expression" json >>= exprFromJSON modulePath
+    us <- readProp "updates" json >>= recordFromJSON (exprFromJSON modulePath)
+    pure $ ObjectUpdate ann e us
 
-  -- absFromJSON :: Foreign -> F (Expr Ann)
-  -- absFromJSON json = do
+  absFromJSON :: Foreign -> F (Expr Ann)
+  absFromJSON json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    idn <- readProp "argument" json >>= identFromJSON
+    e <- readProp "body" json >>= exprFromJSON modulePath
+    pure $ Abs ann idn e
 
-  -- appFromJSON :: Foreign -> F (Expr Ann)
-  -- appFromJSON json = do
+  appFromJSON :: Foreign -> F (Expr Ann)
+  appFromJSON json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    e <- readProp "abstraction" json >>= exprFromJSON modulePath
+    e' <- readProp "argument" json >>= exprFromJSON modulePath
+    pure $ App ann e e'
 
   -- caseFromJSON :: Foreign -> F (Expr Ann)
   -- caseFromJSON json = do
