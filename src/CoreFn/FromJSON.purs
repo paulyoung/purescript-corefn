@@ -6,8 +6,9 @@ import Prelude
 
 import Control.Alt ((<|>))
 import CoreFn.Ann (Ann(..), Comment(..), SourcePos(..), SourceSpan(..))
-import CoreFn.Expr (Bind(..), Bind', Expr(..), Literal(..))
+import CoreFn.Expr (Bind(..), Bind', Expr(..))
 import CoreFn.Ident (Ident(..))
+import CoreFn.Literal (Literal(..))
 import CoreFn.Meta (ConstructorType(..), Meta(..))
 import CoreFn.Module (FilePath(..), Module(..), ModuleImport(..), Version(..))
 import CoreFn.Names (ModuleName(..), ProperName(..), Qualified(..))

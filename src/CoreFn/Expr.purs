@@ -68,7 +68,7 @@ data Expr a
   | Let a (Array (Bind a)) (Expr a)
 
 derive instance eqExpr :: Eq a => Eq (Expr a)
-derive instance functorExpr :: Functor Expr
+-- derive instance functorExpr :: Functor Expr
 derive instance ordExpr :: Ord a => Ord (Expr a)
 
 instance showExpr :: Show a => Show (Expr a) where
@@ -146,7 +146,7 @@ data Bind a
 type Bind' a = Tuple (Tuple a Ident) (Expr a)
 
 derive instance eqBind :: Eq a => Eq (Bind a)
-derive instance functorBind :: Functor Bind
+-- derive instance functorBind :: Functor Bind
 derive instance ordBind :: Ord a => Ord (Bind a)
 
 instance showBind :: Show a => Show (Bind a) where
@@ -193,10 +193,10 @@ data CaseAlternative a = CaseAlternative
 derive instance eqCaseAlternative :: Eq a => Eq (CaseAlternative a)
 derive instance ordCaseAlternative :: Ord a => Ord (CaseAlternative a)
 
-instance functorCaseAlternative :: Functor CaseAlternative where
-  map f (CaseAlternative cabs car) = CaseAlternative
-    (map (map f) cabs)
-    (either (Left <<< map (map f *** map f)) (Right <<< map f) car)
+-- instance functorCaseAlternative :: Functor CaseAlternative where
+--   map f (CaseAlternative cabs car) = CaseAlternative
+--     (map (map f) cabs)
+--     (either (Left <<< map (map f *** map f)) (Right <<< map f) car)
 
 instance showCaseAlternative :: Show a => Show (CaseAlternative a) where
   show (CaseAlternative cabs car) =
