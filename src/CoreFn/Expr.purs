@@ -201,7 +201,5 @@ derive instance ordCaseAlternative :: Ord a => Ord (CaseAlternative a)
 instance showCaseAlternative :: Show a => Show (CaseAlternative a) where
   show (CaseAlternative cabs car) =
     "(CaseAlternative " <>
-      "{ caseAlternativeBinders: " <> show cabs <>
-      ", caseAlternativeResult: " <> show car <>
-      "}" <>
+      intercalate " " [ show cabs, show car ] <>
     ")"
