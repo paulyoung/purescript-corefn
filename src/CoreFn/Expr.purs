@@ -4,8 +4,9 @@
 module CoreFn.Expr
   ( Bind(..)
   , Bind'
+  , CaseAlternative(..)
   , Expr(..)
-  , Literal(..)
+  , Guard
   -- , readBind
   -- , readBindJSON
   -- , readExpr
@@ -16,101 +17,14 @@ module CoreFn.Expr
 
 import Prelude
 
-import CoreFn.Ident (Ident(..))
-import CoreFn.Names (Qualified)
-import CoreFn.Util (objectProps)
+import CoreFn.Binders (Binder)
+import CoreFn.Ident (Ident)
+import CoreFn.Literal (Literal)
+import CoreFn.Names (ProperName, Qualified)
 import Data.Either (Either(..), either)
-import Data.Foreign (F, Foreign, ForeignError(..), fail, readArray, readBoolean, readChar, readInt, readNumber, readString)
-import Data.Foreign.Index (index, readProp)
-import Data.Foreign.JSON (parseJSON)
-import Data.Foreign.Keys as K
-import Data.Traversable (sequence, traverse)
-import Data.Tuple (Tuple(..))
-
--- |
--- Data type for literal values. Parameterised so it can be used for Exprs and
--- Binders.
---
-data Literal a
-  -- |
-  -- A numeric literal
-  --
-  = NumericLiteral (Either Int Number)
-  -- |
-  -- A string literal
-  --
-  | StringLiteral String
-  -- |
-  -- A character literal
-  --
-  | CharLiteral Char
-  -- |
-  -- A boolean literal
-  --
-  | BooleanLiteral Boolean
-  -- |
-  -- An array literal
-  --
-  | ArrayLiteral (Array a)
-  -- |
-  -- An object literal
-  --
-  | ObjectLiteral (Array (Tuple String a))
-
-derive instance eqLiteral :: Eq a => Eq (Literal a)
-derive instance ordLiteral :: Ord a => Ord (Literal a)
-
-instance showLiteral :: Show a => Show (Literal a) where
-  show (NumericLiteral e) = "(NumericLiteral " <> either show show e <> ")"
-  show (StringLiteral s) = "(StringLiteral " <> show s <> ")"
-  show (CharLiteral c) = "(CharLiteral " <> show c <> ")"
-  show (BooleanLiteral b) = "(BooleanLiteral " <> show b <> ")"
-  show (ArrayLiteral a) = "(ArrayLiteral " <> show a <> ")"
-  show (ObjectLiteral o) = "(ObjectLiteral" <> show o <> ")"
-
--- readLiteral :: Foreign -> F (Literal (Expr Unit))
--- readLiteral x = do
---   label <- index x 0 >>= readString
---   readLiteral' label x
-
---   where
-
---   readValues :: Array Foreign -> F (Array (Expr Unit))
---   readValues = traverse readExpr
-
---   readPair :: Foreign -> String -> F (Tuple String (Expr Unit))
---   readPair obj key = Tuple key <$> (readProp key obj >>= readExpr)
-
---   readPairs :: Foreign -> Array String -> F (Array (Tuple String (Expr Unit)))
---   readPairs obj = sequence <<< (map <<< readPair) obj
-
---   readLiteral' :: String -> Foreign -> F (Literal (Expr Unit))
---   readLiteral' "IntLiteral" v = do
---     value <- index v 1
---     NumericLiteral <$> Left <$> readInt value
---   readLiteral' "NumberLiteral" v = do
---     value <- index v 1
---     NumericLiteral <$> Right <$> readNumber value
---   readLiteral' "StringLiteral" v = do
---     value <- index v 1
---     StringLiteral <$> readString value
---   readLiteral' "CharLiteral" v = do
---     value <- index v 1
---     CharLiteral <$> readChar value
---   readLiteral' "BooleanLiteral" v = do
---     value <- index v 1
---     BooleanLiteral <$> readBoolean value
---   readLiteral' "ArrayLiteral" v = do
---     array <- index v 1 >>= readArray
---     ArrayLiteral <$> readValues array
---   readLiteral' "ObjectLiteral" v = do
---     obj <- index v 1
---     keys <- K.keys obj
---     ObjectLiteral <$> readPairs obj keys
---   readLiteral' label _ = fail $ ForeignError $ "Unknown literal: " <> label
-
--- readLiteralJSON :: String -> F (Literal (Expr Unit))
--- readLiteralJSON = parseJSON >=> readLiteral
+import Data.Profunctor.Strong ((***))
+import Data.Traversable (intercalate)
+import Data.Tuple (Tuple)
 
 -- |
 -- Data type for expressions and terms
@@ -120,6 +34,18 @@ data Expr a
   -- A literal value
   --
   = Literal a (Literal (Expr a))
+  -- |
+  -- A data constructor (type name, constructor name, field names)
+  --
+  | Constructor a ProperName ProperName (Array Ident)
+  -- |
+  -- A record property accessor
+  --
+  | Accessor a String (Expr a) -- PSString
+  -- |
+  -- Partial record update
+  --
+  | ObjectUpdate a (Expr a) (Array (Tuple String (Expr a))) -- PSString
   -- |
   -- Function introduction
   --
@@ -132,15 +58,56 @@ data Expr a
   -- Variable
   --
   | Var a (Qualified Ident)
+  -- |
+  -- A case expression
+  --
+  | Case a (Array (Expr a)) (Array (CaseAlternative a))
+  -- |
+  -- A let binding
+  --
+  | Let a (Array (Bind a)) (Expr a)
 
 derive instance eqExpr :: Eq a => Eq (Expr a)
+derive instance functorExpr :: Functor Expr
 derive instance ordExpr :: Ord a => Ord (Expr a)
 
 instance showExpr :: Show a => Show (Expr a) where
-  show (Literal x y) = "(Literal " <> show x <> " " <> show y <> ")"
-  show (Abs x y z) = "(Abs " <> show x <> " " <> show y <> " " <> show z <> ")"
-  show (App x y z) = "(App " <> show x <> " " <> show y <> " " <> show z <> ")"
-  show (Var x y) = "(Var " <> show x <> " " <> show y <> ")"
+  show (Literal a l) =
+    "(Literal " <>
+      intercalate " " [ show a, show l ] <>
+    ")"
+  show (Constructor a t c fs) =
+    "(Constructor " <>
+      intercalate " " [ show a, show t, show c, show fs] <>
+    ")"
+  show (Accessor a s e) =
+    "(Accessor " <>
+      intercalate " " [ show a, show s, show e ] <>
+    ")"
+  show (ObjectUpdate a e fs) =
+    "(ObjectUpdate " <>
+      intercalate " " [ show a, show e, show fs ] <>
+    ")"
+  show (Abs a i e) =
+    "(Abs " <>
+      intercalate " " [ show a, show i, show e ] <>
+    ")"
+  show (App a e1 e2) =
+    "(App " <>
+      intercalate " " [ show a, show e1, show e2 ] <>
+    ")"
+  show (Var a q) =
+    "(Var " <>
+      intercalate " " [ show a, show q ] <>
+    ")"
+  show (Case a es cs) =
+    "(Case " <>
+      intercalate " " [ show a, show es, show cs ] <>
+    ")"
+  show (Let a bs e) =
+    "(Let " <>
+      intercalate " " [ show a, show bs, show e ] <>
+    ")"
 
 -- readExpr :: Foreign -> F (Expr Unit)
 -- readExpr x = do
@@ -179,6 +146,7 @@ data Bind a
 type Bind' a = Tuple (Tuple a Ident) (Expr a)
 
 derive instance eqBind :: Eq a => Eq (Bind a)
+derive instance functorBind :: Functor Bind
 derive instance ordBind :: Ord a => Ord (Bind a)
 
 instance showBind :: Show a => Show (Bind a) where
@@ -203,3 +171,37 @@ instance showBind :: Show a => Show (Bind a) where
 
 -- readBindJSON :: String -> F (Bind Unit)
 -- readBindJSON = parseJSON >=> readBind
+
+
+-- |
+-- A guard is just a boolean-valued expression that appears alongside a set of binders
+--
+type Guard a = Expr a
+
+
+-- |
+-- An alternative in a case statement
+--
+data CaseAlternative a = CaseAlternative
+  -- |
+  -- A collection of binders with which to match the inputs
+  (Array (Binder a))
+  -- |
+  -- The result expression or a collect of guarded expressions
+  (Either (Array (Tuple (Guard a) (Expr a))) (Expr a))
+
+derive instance eqCaseAlternative :: Eq a => Eq (CaseAlternative a)
+derive instance ordCaseAlternative :: Ord a => Ord (CaseAlternative a)
+
+instance functorCaseAlternative :: Functor CaseAlternative where
+  map f (CaseAlternative cabs car) = CaseAlternative
+    (map (map f) cabs)
+    (either (Left <<< map (map f *** map f)) (Right <<< map f) car)
+
+instance showCaseAlternative :: Show a => Show (CaseAlternative a) where
+  show (CaseAlternative cabs car) =
+    "(CaseAlternative " <>
+      "{ caseAlternativeBinders: " <> show cabs <>
+      ", caseAlternativeResult: " <> show car <>
+      "}" <>
+    ")"

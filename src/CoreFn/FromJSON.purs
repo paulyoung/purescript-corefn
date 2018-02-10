@@ -221,7 +221,7 @@ exprFromJSON modulePath = object \json -> do
   case type_ of
     "Var" -> varFromJSON json
     "Literal" -> literalExprFromJSON json
-    -- "Constructor" -> constructorFromJSON json
+    "Constructor" -> constructorFromJSON json
     -- "Accessor" -> accessorFromJSON json
     -- "ObjectUpdate" -> objectUpdateFromJSON json
     -- "Abs" -> absFromJSON json
@@ -242,8 +242,13 @@ exprFromJSON modulePath = object \json -> do
     lit <- readProp "value" json >>= literalFromJSON (exprFromJSON modulePath)
     pure $ Literal ann lit
 
-  -- constructorFromJSON :: Foreign -> F (Expr Ann)
-  -- constructorFromJSON json = do
+  constructorFromJSON :: Foreign -> F (Expr Ann)
+  constructorFromJSON json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    tyn <- readProp "typeName" json >>= properNameFromJSON
+    con <- readProp "constructorName" json >>= properNameFromJSON
+    is  <- readProp "fieldNames" json >>= readArray >>= traverse identFromJSON
+    pure $ Constructor ann tyn con is
 
   -- accessorFromJSON :: Foreign -> F (Expr Ann)
   -- accessorFromJSON json = do
