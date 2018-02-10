@@ -6,13 +6,14 @@ import Prelude
 
 import Control.Alt ((<|>))
 import CoreFn.Ann (Ann(..), Comment(..), SourcePos(..), SourceSpan(..))
-import CoreFn.Expr (Bind(..), Bind', Expr(..))
+import CoreFn.Expr (Bind(..), Bind', Expr(..), Literal(..))
 import CoreFn.Ident (Ident(..))
 import CoreFn.Meta (ConstructorType(..), Meta(..))
 import CoreFn.Module (FilePath(..), Module(..), ModuleImport(..), Version(..))
 import CoreFn.Names (ModuleName(..), ProperName(..), Qualified(..))
 import Data.Array as Array
-import Data.Foreign (F, Foreign, ForeignError(ForeignError, TypeMismatch), fail, readArray, readInt, readNull, readString, typeOf)
+import Data.Either (Either(..))
+import Data.Foreign (F, Foreign, ForeignError(..), fail, readArray, readBoolean, readChar, readInt, readNull, readNumber, readString, typeOf)
 import Data.Foreign.Index (index, readProp)
 import Data.Foreign.JSON (parseJSON)
 import Data.Foreign.Keys (keys)
@@ -71,7 +72,34 @@ annFromJSON modulePath = object \json -> do
     sourcePosColumn <- index json 1 >>= readInt
     pure $ SourcePos { sourcePosLine, sourcePosColumn }
 
--- literalFromJSON
+literalFromJSON :: forall a. (Foreign -> F a) -> Foreign -> F (Literal a)
+literalFromJSON t = object \json -> do
+  type_ <- readProp "literalType" json >>= readString
+  case type_ of
+    "IntLiteral" ->
+      NumericLiteral <<< Left <$> (readProp "value" json >>= readInt)
+    "NumberLiteral" ->
+      NumericLiteral <<< Right <$> (readProp "value" json >>= readNumber)
+    "StringLiteral" ->
+      StringLiteral <$> (readProp "value" json >>= readString)
+    "CharLiteral" ->
+      CharLiteral <$> (readProp "value" json >>= readChar)
+    "BooleanLiteral" ->
+      BooleanLiteral <$> (readProp "value" json >>= readBoolean)
+    "ArrayLiteral" -> parseArrayLiteral json
+    "ObjectLiteral" -> parseObjectLiteral json
+    _ -> fail $ ForeignError $ "Unknown Literal: " <> type_
+  where
+    parseArrayLiteral :: Foreign -> F (Literal a)
+    parseArrayLiteral json = do
+      val <- readProp "value" json >>= readArray
+      as <- traverse t val
+      pure $ ArrayLiteral as
+
+    parseObjectLiteral :: Foreign -> F (Literal a)
+    parseObjectLiteral json = do
+      val <- readProp "value" json
+      ObjectLiteral <$> recordFromJSON t val
 
 identFromJSON :: Foreign -> F Ident
 identFromJSON = map Ident <<< readString
@@ -179,14 +207,21 @@ bindFromJSON modulePath = object \json -> do
     expr <- fail $ ForeignError "FIXME"
     pure $ Tuple (Tuple ann ident) expr
 
--- recordFromJSON
+recordFromJSON
+  :: forall a
+   . (Foreign -> F a)
+  -> Foreign
+  -> F (Array (Tuple String a))
+recordFromJSON f json = keys json >>= traverse \key -> do
+  value <- readProp key json >>= f
+  pure $ Tuple key value
 
 exprFromJSON :: FilePath -> Foreign -> F (Expr Ann)
 exprFromJSON modulePath = object \json -> do
   type_ <- readProp "type" json >>= readString
   case type_ of
     "Var" -> varFromJSON json
-    -- "Literal" -> literalFromJSON json
+    "Literal" -> literalExprFromJSON json
     -- "Constructor" -> constructorFromJSON json
     -- "Accessor" -> accessorFromJSON json
     -- "ObjectUpdate" -> objectUpdateFromJSON json
@@ -201,14 +236,32 @@ exprFromJSON modulePath = object \json -> do
     ann <- readProp "annotation" json >>= annFromJSON modulePath
     qi <- readProp "value" json >>= qualifiedFromJSON Ident
     pure $ Var ann qi
-    
-  -- literalFromJSON json = do
+
+  literalExprFromJSON :: Foreign -> F (Expr Ann)
+  literalExprFromJSON json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    lit <- readProp "value" json >>= literalFromJSON (exprFromJSON modulePath)
+    pure $ Literal ann lit
+
+  -- constructorFromJSON :: Foreign -> F (Expr Ann)
   -- constructorFromJSON json = do
+
+  -- accessorFromJSON :: Foreign -> F (Expr Ann)
   -- accessorFromJSON json = do
+
+  -- objectUpdateFromJSON :: Foreign -> F (Expr Ann)
   -- objectUpdateFromJSON json = do
+
+  -- absFromJSON :: Foreign -> F (Expr Ann)
   -- absFromJSON json = do
+
+  -- appFromJSON :: Foreign -> F (Expr Ann)
   -- appFromJSON json = do
+
+  -- caseFromJSON :: Foreign -> F (Expr Ann)
   -- caseFromJSON json = do
+
+  -- letFromJSON :: Foreign -> F (Expr Ann)
   -- letFromJSON json = do
 
 -- caseAlternativeFromJSON
