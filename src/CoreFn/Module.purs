@@ -3,8 +3,6 @@ module CoreFn.Module
   , Module(..)
   , ModuleImport(..)
   , Version(..)
-  -- , readModule
-  -- , readModuleJSON
   ) where
 
 import Prelude
@@ -12,14 +10,8 @@ import Prelude
 import CoreFn.Ann (Comment, Ann)
 import CoreFn.Expr (Bind)
 import CoreFn.Ident (Ident)
-import CoreFn.Names (ModuleName(..))
-import CoreFn.Util (objectProp)
-import Data.Array (intercalate)
-import Data.Foreign (F, Foreign, readArray, readString)
-import Data.Foreign.Index (class Index, index, readProp)
-import Data.Foreign.JSON (parseJSON)
+import CoreFn.Names (ModuleName)
 import Data.Newtype (class Newtype)
-import Data.Traversable (traverse)
 
 -- |
 -- The CoreFn module representation
@@ -68,6 +60,7 @@ instance showModuleImport :: Show ModuleImport where
       "}" <>
     ")"
 
+
 newtype Version = Version String
 
 derive instance newtypeVersion :: Newtype Version _
@@ -86,39 +79,3 @@ derive newtype instance ordFilePath :: Ord FilePath
 
 instance showFilePath :: Show FilePath where
   show (FilePath s) = "(FilePath " <> show s <> ")"
-
-
--- readModule :: Foreign -> F (Module Unit)
--- readModule x = do
---   o <- objectProp "Module name not found" x
-
---   builtWith     <- readProp "builtWith" o.value >>= readString
---   moduleDecls   <- traverseArrayProp "decls"   o.value readBind
---   moduleExports <- traverseArrayProp "exports" o.value readIdent
---   moduleForeign <- traverseArrayProp "foreign" o.value readIdent
---   moduleImports <- traverseArrayProp "imports" o.value readModuleName
-
---   let moduleName = ModuleName o.key
-
---   pure $ Module
---     { builtWith: Version builtWith
---     , moduleDecls
---     , moduleExports
---     , moduleForeign
---     , moduleImports
---     , moduleName
---     }
-
---   where
-
---   traverseArrayProp
---     :: forall a b
---      . (Index a)
---     => a
---     -> Foreign
---     -> (Foreign -> F b)
---     -> F (Array b)
---   traverseArrayProp i value f = index value i >>= readArray >>= traverse f
-
--- readModuleJSON :: String -> F (Module Unit)
--- readModuleJSON = parseJSON >=> readModule

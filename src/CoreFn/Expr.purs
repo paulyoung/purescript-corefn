@@ -7,12 +7,6 @@ module CoreFn.Expr
   , CaseAlternative(..)
   , Expr(..)
   , Guard
-  -- , readBind
-  -- , readBindJSON
-  -- , readExpr
-  -- , readExprJSON
-  -- , readLiteral
-  -- , readLiteralJSON
   ) where
 
 import Prelude
@@ -109,32 +103,6 @@ instance showExpr :: Show a => Show (Expr a) where
       intercalate " " [ show a, show bs, show e ] <>
     ")"
 
--- readExpr :: Foreign -> F (Expr Unit)
--- readExpr x = do
---   label <- index x 0 >>= readString
---   readExpr' label x
-
---   where
-
---   readExpr' :: String -> Foreign -> F (Expr Unit)
---   readExpr' "Literal" y = do
---     value <- index y 1
---     Literal unit <$> readLiteral value
---   readExpr' "Abs" y = do
---     ident <- index y 1
---     expr <- index y 2
---     Abs unit <$> readIdent ident <*> readExpr expr
---   readExpr' "App" y = do
---     expr1 <- index y 1
---     expr2 <- index y 2
---     App unit <$> readExpr expr1 <*> readExpr expr2
---   readExpr' "Var" y = do
---     value <- index y 1
---     Var unit <$> readQualified Ident value
---   readExpr' label _ = fail $ ForeignError $ "Unknown expression: " <> label
-
--- readExprJSON :: String -> F (Expr Unit)
--- readExprJSON = parseJSON >=> readExpr
 
 -- |
 --  A let or module binding.
@@ -152,25 +120,6 @@ derive instance ordBind :: Ord a => Ord (Bind a)
 instance showBind :: Show a => Show (Bind a) where
   show (NonRec b) = "(NonRec " <> show b <> ")"
   show (Rec b) = "(Rec " <> show b <> ")"
-
--- readBind :: Foreign -> F (Bind Unit)
--- readBind x = do
---   pairs <- objectProps x
---   bindings <- traverse fromPair pairs
---   pure $ Bind bindings
-
---   where
-
---   fromPair
---     :: { key :: String, value :: Foreign }
---     -> F (Tuple (Tuple Unit Ident) (Expr Unit))
---   fromPair pair = do
---     expr <- readExpr pair.value
---     let ident = Ident pair.key
---     pure $ Tuple (Tuple unit ident) expr
-
--- readBindJSON :: String -> F (Bind Unit)
--- readBindJSON = parseJSON >=> readBind
 
 
 -- |
