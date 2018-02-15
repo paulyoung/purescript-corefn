@@ -6,7 +6,8 @@ import Prelude
 
 import Control.Alt ((<|>))
 import CoreFn.Ann (Ann(..), Comment(..), SourcePos(..), SourceSpan(..))
-import CoreFn.Expr (Bind(..), Bind', Expr(..))
+import CoreFn.Binders (Binder(..))
+import CoreFn.Expr (Bind(..), Bind', CaseAlternative(..), Expr(..))
 import CoreFn.Ident (Ident(..))
 import CoreFn.Literal (Literal(..))
 import CoreFn.Meta (ConstructorType(..), Meta(..))
@@ -227,7 +228,7 @@ exprFromJSON modulePath = object \json -> do
     "ObjectUpdate" -> objectUpdateFromJSON json
     "Abs" -> absFromJSON json
     "App" -> appFromJSON json
-    -- "Case" -> caseFromJSON json
+    "Case" -> caseFromJSON json
     -- "Let" -> letFromJSON json
     _ -> fail $ ForeignError $ "Unknown Expr type: " <> type_
   where
@@ -279,12 +280,84 @@ exprFromJSON modulePath = object \json -> do
     e' <- readProp "argument" json >>= exprFromJSON modulePath
     pure $ App ann e e'
 
-  -- caseFromJSON :: Foreign -> F (Expr Ann)
-  -- caseFromJSON json = do
+  caseFromJSON :: Foreign -> F (Expr Ann)
+  caseFromJSON json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    cs <- readProp "caseExpressions" json
+      >>= readArray
+      >>= traverse (exprFromJSON modulePath)
+    cas <- readProp "caseAlternatives" json
+      >>= readArray
+      >>= traverse (caseAlternativeFromJSON modulePath)
+    pure $ Case ann cs cas
 
   -- letFromJSON :: Foreign -> F (Expr Ann)
   -- letFromJSON json = do
 
--- caseAlternativeFromJSON
+caseAlternativeFromJSON :: FilePath -> Foreign -> F (CaseAlternative Ann)
+caseAlternativeFromJSON modulePath = object \json -> do
+  bs <- readProp "binders" json
+    >>= readArray
+    >>= traverse (binderFromJSON modulePath)
+  isGuarded <- readProp "isGuarded" json >>= readBoolean
+  if isGuarded
+    then do
+      es <- readProp "expressions" json
+        >>= readArray
+        >>= traverse parseResultWithGuard
+      pure $ CaseAlternative bs $ Left es
+    else do
+      e <- readProp "expression" json >>= exprFromJSON modulePath
+      pure $ CaseAlternative bs $ Right e
+  where
+  parseResultWithGuard :: Foreign -> F (Tuple (Expr Ann) (Expr Ann))
+  parseResultWithGuard = object \json -> do
+    g <- readProp "guard" json >>= exprFromJSON modulePath
+    e <- readProp "expression" json >>= exprFromJSON modulePath
+    pure $ Tuple g e
 
--- binderFromJSON
+binderFromJSON :: FilePath -> Foreign -> F (Binder Ann)
+binderFromJSON modulePath = object \json -> do
+  type_ <- readProp "binderType" json >>= readString
+  case type_ of
+    "NullBinder" -> nullBinderFromJSON json
+    "VarBinder" -> varBinderFromJSON json
+    "LiteralBinder" -> literalBinderFromJSON json
+    "ConstructorBinder" -> constructorBinderFromJSON json
+    "NamedBinder" -> namedBinderFromJSON json
+    _ -> fail $ ForeignError $ "Unknown Binder type: " <> type_
+  where
+  nullBinderFromJSON :: Foreign -> F (Binder Ann)
+  nullBinderFromJSON json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    pure $ NullBinder ann
+
+  varBinderFromJSON :: Foreign -> F (Binder Ann)
+  varBinderFromJSON json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    idn <- readProp "identifier" json >>= identFromJSON
+    pure $ VarBinder ann idn
+
+  literalBinderFromJSON :: Foreign -> F (Binder Ann)
+  literalBinderFromJSON json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    lit <- readProp "literal" json
+      >>= literalFromJSON (binderFromJSON modulePath)
+    pure $ LiteralBinder ann lit
+
+  constructorBinderFromJSON :: Foreign -> F (Binder Ann)
+  constructorBinderFromJSON json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    tyn <- readProp "typeName" json >>= qualifiedFromJSON ProperName
+    con <- readProp "constructorName" json >>= qualifiedFromJSON ProperName
+    bs <- readProp "binders" json
+      >>= readArray
+      >>= traverse (binderFromJSON modulePath)
+    pure $ ConstructorBinder ann tyn con bs
+
+  namedBinderFromJSON :: Foreign -> F (Binder Ann)
+  namedBinderFromJSON json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    n <- readProp "identifier" json >>= identFromJSON
+    b <- readProp "binder" json >>= binderFromJSON modulePath
+    pure $ NamedBinder ann n b
