@@ -229,7 +229,7 @@ exprFromJSON modulePath = object \json -> do
     "Abs" -> absFromJSON json
     "App" -> appFromJSON json
     "Case" -> caseFromJSON json
-    -- "Let" -> letFromJSON json
+    "Let" -> letFromJSON json
     _ -> fail $ ForeignError $ "Unknown Expr type: " <> type_
   where
   varFromJSON :: Foreign -> F (Expr Ann)
@@ -291,8 +291,14 @@ exprFromJSON modulePath = object \json -> do
       >>= traverse (caseAlternativeFromJSON modulePath)
     pure $ Case ann cs cas
 
-  -- letFromJSON :: Foreign -> F (Expr Ann)
-  -- letFromJSON json = do
+  letFromJSON :: Foreign -> F (Expr Ann)
+  letFromJSON json = do
+    ann <- readProp "annotation" json >>= annFromJSON modulePath
+    bs <- readProp "binds" json
+      >>= readArray
+      >>= traverse (bindFromJSON modulePath)
+    e <- readProp "expression" json >>= exprFromJSON modulePath
+    pure $ Let ann bs e
 
 caseAlternativeFromJSON :: FilePath -> Foreign -> F (CaseAlternative Ann)
 caseAlternativeFromJSON modulePath = object \json -> do
