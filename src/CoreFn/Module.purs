@@ -16,7 +16,7 @@ import Data.Newtype (class Newtype)
 -- |
 -- The CoreFn module representation
 --
-data Module a = Module
+newtype Module a = Module
   { moduleComments :: Array Comment
   , moduleName :: ModuleName
   , modulePath :: FilePath
@@ -26,6 +26,7 @@ data Module a = Module
   , moduleDecls :: Array (Bind a)
   }
 
+derive instance newtypeModule :: Newtype (Module a) _
 derive instance eqModule :: Eq a => Eq (Module a)
 derive instance ordModule :: Ord a => Ord (Module a)
 
