@@ -15,8 +15,8 @@ import CoreFn.Binders (Binder)
 import CoreFn.Ident (Ident)
 import CoreFn.Literal (Literal)
 import CoreFn.Names (ProperName, Qualified)
-import Data.Either (Either(..), either)
-import Data.Profunctor.Strong ((***))
+import Data.Either (Either(..){-, either-})
+-- import Data.Profunctor.Strong ((***))
 import Data.Traversable (intercalate)
 import Data.Tuple (Tuple)
 
@@ -145,9 +145,10 @@ derive instance eqCaseAlternative :: Eq a => Eq (CaseAlternative a)
 derive instance ordCaseAlternative :: Ord a => Ord (CaseAlternative a)
 
 -- instance functorCaseAlternative :: Functor CaseAlternative where
---   map f (CaseAlternative cabs car) = CaseAlternative
---     (map (map f) cabs)
---     (either (Left <<< map (map f *** map f)) (Right <<< map f) car)
+--   map f (CaseAlternative { caseAlternativeBinders, caseAlternativeResult }) = CaseAlternative
+--     { caseAlternativeBinders: (map (map f) caseAlternativeBinders)
+--     , caseAlternativeResult: (either (Left <<< map (map f *** map f)) (Right <<< map f) caseAlternativeResult)
+--     }
 
 instance showCaseAlternative :: Show a => Show (CaseAlternative a) where
   show (CaseAlternative { caseAlternativeBinders, caseAlternativeResult }) =
