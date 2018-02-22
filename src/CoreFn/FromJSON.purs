@@ -311,10 +311,16 @@ caseAlternativeFromJSON modulePath = object \json -> do
       es <- readProp "expressions" json
         >>= readArray
         >>= traverse parseResultWithGuard
-      pure $ CaseAlternative bs $ Left es
+      pure $ CaseAlternative
+        { caseAlternativeBinders: bs
+        , caseAlternativeResult: Left es
+        }
     else do
       e <- readProp "expression" json >>= exprFromJSON modulePath
-      pure $ CaseAlternative bs $ Right e
+      pure $ CaseAlternative
+        { caseAlternativeBinders: bs
+        , caseAlternativeResult: Right e
+        }
   where
   parseResultWithGuard :: Foreign -> F (Tuple (Expr Ann) (Expr Ann))
   parseResultWithGuard = object \json -> do

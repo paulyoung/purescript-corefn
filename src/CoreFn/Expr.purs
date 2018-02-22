@@ -132,12 +132,14 @@ type Guard a = Expr a
 -- An alternative in a case statement
 --
 data CaseAlternative a = CaseAlternative
-  -- |
-  -- A collection of binders with which to match the inputs
-  (Array (Binder a))
-  -- |
-  -- The result expression or a collect of guarded expressions
-  (Either (Array (Tuple (Guard a) (Expr a))) (Expr a))
+  {
+    -- |
+    -- A collection of binders with which to match the inputs
+    caseAlternativeBinders :: (Array (Binder a))
+    -- |
+    -- The result expression or a collect of guarded expressions
+  , caseAlternativeResult :: (Either (Array (Tuple (Guard a) (Expr a))) (Expr a))
+  }
 
 derive instance eqCaseAlternative :: Eq a => Eq (CaseAlternative a)
 derive instance ordCaseAlternative :: Ord a => Ord (CaseAlternative a)
@@ -148,7 +150,9 @@ derive instance ordCaseAlternative :: Ord a => Ord (CaseAlternative a)
 --     (either (Left <<< map (map f *** map f)) (Right <<< map f) car)
 
 instance showCaseAlternative :: Show a => Show (CaseAlternative a) where
-  show (CaseAlternative cabs car) =
+  show (CaseAlternative { caseAlternativeBinders, caseAlternativeResult }) =
     "(CaseAlternative " <>
-      intercalate " " [ show cabs, show car ] <>
+      "{ caseAlternativeBinders: " <> show caseAlternativeBinders <>
+      ", caseAlternativeResult: " <> show caseAlternativeResult <>
+      "}" <>
     ")"
