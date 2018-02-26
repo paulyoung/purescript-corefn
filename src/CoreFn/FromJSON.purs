@@ -1,6 +1,6 @@
-module CoreFn.FromJSON where
-  -- ( moduleFromJSON
-  -- )
+module CoreFn.FromJSON
+  ( moduleFromJSON
+  ) where
 
 import Prelude
 
