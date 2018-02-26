@@ -3,7 +3,6 @@
 --
 module CoreFn.Expr
   ( Bind(..)
-  , Bind'
   , CaseAlternative(..)
   , Expr(..)
   , Guard
@@ -15,8 +14,9 @@ import CoreFn.Binders (Binder)
 import CoreFn.Ident (Ident)
 import CoreFn.Literal (Literal)
 import CoreFn.Names (ProperName, Qualified)
-import Data.Either (Either(..){-, either-})
--- import Data.Profunctor.Strong ((***))
+import Data.Bifunctor (bimap, lmap)
+import Data.Either (Either(..), either)
+import Data.Profunctor.Strong ((***))
 import Data.Traversable (intercalate)
 import Data.Tuple (Tuple)
 
@@ -62,7 +62,7 @@ data Expr a
   | Let a (Array (Bind a)) (Expr a)
 
 derive instance eqExpr :: Eq a => Eq (Expr a)
--- derive instance functorExpr :: Functor Expr
+derive instance functorExpr :: Functor Expr
 derive instance ordExpr :: Ord a => Ord (Expr a)
 
 instance showExpr :: Show a => Show (Expr a) where
@@ -108,17 +108,21 @@ instance showExpr :: Show a => Show (Expr a) where
 --  A let or module binding.
 --
 data Bind a
-  = NonRec (Bind' a)
-  | Rec (Array (Bind' a))
-
-type Bind' a = Tuple (Tuple a Ident) (Expr a)
+  = NonRec a Ident (Expr a)
+  | Rec (Array (Tuple (Tuple a Ident) (Expr a)))
 
 derive instance eqBind :: Eq a => Eq (Bind a)
--- derive instance functorBind :: Functor Bind
 derive instance ordBind :: Ord a => Ord (Bind a)
 
+instance functorBindRec :: Functor Bind where
+  map f (NonRec a i e) = NonRec (f a) i (map f e)
+  map f (Rec ts) = Rec $ map (bimap (lmap f) (map f)) ts
+
 instance showBind :: Show a => Show (Bind a) where
-  show (NonRec b) = "(NonRec " <> show b <> ")"
+  show (NonRec a i e) =
+    "(NonRec " <>
+      intercalate " " [ show a, show i, show e ] <>
+    ")"
   show (Rec b) = "(Rec " <> show b <> ")"
 
 
@@ -144,11 +148,11 @@ data CaseAlternative a = CaseAlternative
 derive instance eqCaseAlternative :: Eq a => Eq (CaseAlternative a)
 derive instance ordCaseAlternative :: Ord a => Ord (CaseAlternative a)
 
--- instance functorCaseAlternative :: Functor CaseAlternative where
---   map f (CaseAlternative { caseAlternativeBinders, caseAlternativeResult }) = CaseAlternative
---     { caseAlternativeBinders: (map (map f) caseAlternativeBinders)
---     , caseAlternativeResult: (either (Left <<< map (map f *** map f)) (Right <<< map f) caseAlternativeResult)
---     }
+instance functorCaseAlternative :: Functor CaseAlternative where
+  map f (CaseAlternative { caseAlternativeBinders, caseAlternativeResult }) = CaseAlternative
+    { caseAlternativeBinders: (map (map f) caseAlternativeBinders)
+    , caseAlternativeResult: (either (Left <<< map (map f *** map f)) (Right <<< map f) caseAlternativeResult)
+    }
 
 instance showCaseAlternative :: Show a => Show (CaseAlternative a) where
   show (CaseAlternative { caseAlternativeBinders, caseAlternativeResult }) =

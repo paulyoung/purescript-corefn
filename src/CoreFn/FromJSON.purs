@@ -7,7 +7,7 @@ import Prelude
 import Control.Alt ((<|>))
 import CoreFn.Ann (Ann(..), Comment(..), SourcePos(..), SourceSpan(..))
 import CoreFn.Binders (Binder(..))
-import CoreFn.Expr (Bind(..), Bind', CaseAlternative(..), Expr(..))
+import CoreFn.Expr (Bind(..), CaseAlternative(..), Expr(..))
 import CoreFn.Ident (Ident(..))
 import CoreFn.Literal (Literal(..))
 import CoreFn.Meta (ConstructorType(..), Meta(..))
@@ -22,7 +22,7 @@ import Data.Foreign.Keys (keys)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Traversable (traverse)
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), uncurry)
 
 objectType :: String
 objectType = "object"
@@ -193,7 +193,7 @@ bindFromJSON :: FilePath -> Foreign -> F (Bind Ann)
 bindFromJSON modulePath = object \json -> do
   type_ <- readProp "bindType" json >>= readString
   case type_ of
-    "NonRec" -> NonRec <$> bindFromJSON' json
+    "NonRec" -> (uncurry <<< uncurry) NonRec <$> bindFromJSON' json
     "Rec" ->
       map Rec
         $ readProp "binds" json
@@ -201,7 +201,7 @@ bindFromJSON modulePath = object \json -> do
         >>= traverse (object bindFromJSON')
     _ -> fail $ ForeignError $ "Unknown Bind type: " <> type_
   where
-  bindFromJSON' :: Foreign -> F (Bind' Ann)
+  bindFromJSON' :: Foreign -> F (Tuple (Tuple Ann Ident) (Expr Ann))
   bindFromJSON' json = do
     ann <- readProp "annotation" json >>= annFromJSON modulePath
     ident <- readProp "identifier" json >>= identFromJSON
