@@ -138,7 +138,9 @@ moduleFromJSON = parseJSON >=> moduleFromJSON'
       >>= readArray
       >>= traverse identFromJSON
 
-    moduleDecls <- pure []
+    moduleDecls <- readProp "decls" json
+      >>= readArray
+      >>= traverse (bindFromJSON modulePath)
 
     moduleForeign <- readProp "foreign" json
       >>= readArray
