@@ -45,7 +45,7 @@ metaFromJSON = object $ \json -> do
   type_ <- readProp "metaType" json >>= readString
   case type_ of
     "IsConstructor" -> isConstructorFromJSON json
-    "IsNewType" -> pure IsNewtype
+    "IsNewtype" -> pure IsNewtype
     "IsTypeClassConstructor" -> pure IsTypeClassConstructor
     "IsForeign" -> pure IsForeign
     _ -> fail $ ForeignError $ "Unknown Meta type :" <> type_
