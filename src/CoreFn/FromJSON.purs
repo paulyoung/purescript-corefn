@@ -16,7 +16,7 @@ import CoreFn.Names (ModuleName(..), ProperName(..), Qualified(..))
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Foreign (F, Foreign, ForeignError(..), fail, readArray, readBoolean, readChar, readInt, readNull, readNumber, readString, typeOf)
-import Data.Foreign.Index (index, readProp)
+import Data.Foreign.Index (index, readIndex, readProp)
 import Data.Foreign.JSON (parseJSON)
 import Data.Foreign.Keys (keys)
 import Data.Maybe (Maybe(..))
@@ -215,9 +215,13 @@ recordFromJSON
    . (Foreign -> F a)
   -> Foreign
   -> F (Array (Tuple String a))
-recordFromJSON f json = keys json >>= traverse \key -> do
-  value <- readProp key json >>= f
-  pure $ Tuple key value
+recordFromJSON p json = readArray json >>= traverse parsePair
+  where
+  parsePair :: Foreign -> F (Tuple String a)
+  parsePair v = do
+    l <- readIndex 0 v >>= readString
+    a <- readIndex 1 v >>= p
+    pure $ Tuple l a
 
 exprFromJSON :: FilePath -> Foreign -> F (Expr Ann)
 exprFromJSON modulePath = object \json -> do
