@@ -1,81 +1,82 @@
 module CoreFn.Module
-  ( Module(..)
-  , readModule
-  , readModuleJSON
+  ( FilePath(..)
+  , Module(..)
+  , ModuleImport(..)
+  , Version(..)
   ) where
 
 import Prelude
 
-import CoreFn.Expr (Bind, readBind)
-import CoreFn.Ident (Ident, readIdent)
-import CoreFn.Names (ModuleName(..), readModuleName)
-import CoreFn.Util (objectProp)
-import Data.Foreign (F, Foreign, readArray, readString)
-import Data.Foreign.Index (class Index, index, readProp)
-import Data.Foreign.JSON (parseJSON)
-import Data.Traversable (traverse)
+import CoreFn.Ann (Comment, Ann)
+import CoreFn.Expr (Bind)
+import CoreFn.Ident (Ident)
+import CoreFn.Names (ModuleName)
+import Data.Newtype (class Newtype)
 
 -- |
 -- The CoreFn module representation
 --
-data Module a = Module
-  { builtWith :: String
-  , moduleDecls :: Array (Bind a)
+newtype Module a = Module
+  { moduleComments :: Array Comment
+  , moduleName :: ModuleName
+  , modulePath :: FilePath
+  , moduleImports :: Array ModuleImport
   , moduleExports :: Array Ident
   , moduleForeign :: Array Ident
-  , moduleImports :: Array ModuleName
-  , moduleName :: ModuleName
+  , moduleDecls :: Array (Bind a)
   }
 
+derive instance newtypeModule :: Newtype (Module a) _
 derive instance eqModule :: Eq a => Eq (Module a)
 derive instance ordModule :: Ord a => Ord (Module a)
 
 instance showModule :: Show a => Show (Module a) where
-  show (Module { builtWith
-               , moduleDecls
-               , moduleExports
-               , moduleForeign
-               , moduleImports
-               , moduleName }) =
-       "(Module { builtWith: " <> show builtWith <>
-               ", moduleName: " <> show moduleName <>
-               ", moduleDecls: " <> show moduleDecls <>
-               ", moduleExports: " <> show moduleExports <>
-               ", moduleForeign: " <> show moduleForeign <>
-               ", moduleImports: " <> show moduleImports <>
-               "})"
+  show (Module m) =
+    "(Module " <>
+      "{ moduleComments: " <> show m.moduleComments <>
+      ", moduleName: " <> show m.moduleName <>
+      ", modulePath: " <> show m.modulePath <>
+      ", moduleImports: " <> show m.moduleImports <>
+      ", moduleExports: " <> show m.moduleExports <>
+      ", moduleForeign: " <> show m.moduleForeign <>
+      ", moduleDecls: " <> show m.moduleDecls <>
+      "}" <>
+    ")"
 
-readModule :: Foreign -> F (Module Unit)
-readModule x = do
-  o <- objectProp "Module name not found" x
 
-  builtWith     <- readProp "builtWith" o.value >>= readString
-  moduleDecls   <- traverseArrayProp "decls"   o.value readBind
-  moduleExports <- traverseArrayProp "exports" o.value readIdent
-  moduleForeign <- traverseArrayProp "foreign" o.value readIdent
-  moduleImports <- traverseArrayProp "imports" o.value readModuleName
+newtype ModuleImport = ModuleImport
+  { ann :: Ann
+  , moduleName :: ModuleName
+  }
 
-  let moduleName = ModuleName o.key
+derive instance newtypeModuleImport :: Newtype ModuleImport _
+derive instance eqModuleImport :: Eq ModuleImport
+derive instance ordModuleImport :: Ord ModuleImport
 
-  pure $ Module
-    { builtWith
-    , moduleDecls
-    , moduleExports
-    , moduleForeign
-    , moduleImports
-    , moduleName
-    }
+instance showModuleImport :: Show ModuleImport where
+  show (ModuleImport moduleImport) =
+    "(ModuleImport " <>
+      "{ ann: " <> show moduleImport.ann <>
+      ", moduleName: " <> show moduleImport.moduleName <>
+      "}" <>
+    ")"
 
-  where
 
-  traverseArrayProp
-    :: forall a b
-     . (Index a)
-    => a
-    -> Foreign
-    -> (Foreign -> F b)
-    -> F (Array b)
-  traverseArrayProp i value f = index value i >>= readArray >>= traverse f
+newtype Version = Version String
 
-readModuleJSON :: String -> F (Module Unit)
-readModuleJSON = parseJSON >=> readModule
+derive instance newtypeVersion :: Newtype Version _
+derive newtype instance eqVersion :: Eq Version
+derive newtype instance ordVersion :: Ord Version
+
+instance showVersion :: Show Version where
+  show (Version v) = "(Version " <> show v <> ")"
+
+
+newtype FilePath = FilePath String
+
+derive instance newtypeFilePath :: Newtype FilePath _
+derive newtype instance eqFilePath :: Eq FilePath
+derive newtype instance ordFilePath :: Ord FilePath
+
+instance showFilePath :: Show FilePath where
+  show (FilePath s) = "(FilePath " <> show s <> ")"

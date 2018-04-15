@@ -14,9 +14,13 @@
     "purescript-newtype": "^2.0.0",
     "purescript-tuples": "^4.0.0",
     "purescript-foldable-traversable": "^3.0.0",
-    "purescript-generics": "^4.0.0"
+    "purescript-profunctor": "^3.2.0"
   },
   "devDependencies": {
-    "purescript-psci-support": "^3.0.0"
+    "purescript-psci-support": "^3.0.0",
+    "purescript-spec": "^2.0.0",
+    "purescript-spec-discovery": "^2.0.0",
+    "purescript-node-fs": "^4.0.0",
+    "purescript-eff": "^3.1.0"
   }
 }

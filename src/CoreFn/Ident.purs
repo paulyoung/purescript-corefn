@@ -3,15 +3,10 @@
 --
 module CoreFn.Ident
   ( Ident(..)
-  , readIdent
-  , readIdentJSON
   ) where
 
 import Prelude
 
-import Data.Foreign (F, Foreign, readString)
-import Data.Foreign.JSON (parseJSON)
-import Data.Generic (gShow, class Generic)
 import Data.Maybe (Maybe)
 
 data Ident
@@ -23,16 +18,15 @@ data Ident
   -- A generated name for an identifier
   --
   | GenIdent (Maybe String) Int
+  -- |
+  -- A generated name used only for type-checking
+  --
+  | UnusedIdent
 
 derive instance eqIdent :: Eq Ident
-derive instance genericIdent :: Generic Ident
 derive instance ordIdent :: Ord Ident
 
 instance showIdent :: Show Ident where
-  show = gShow
-
-readIdent :: Foreign -> F Ident
-readIdent x = Ident <$> readString x
-
-readIdentJSON :: String -> F Ident
-readIdentJSON = parseJSON >=> readIdent
+  show (Ident s) = "(Ident " <> show s <> ")"
+  show (GenIdent s i) = "(GenIdent " <> show s <> " " <> show i <> ")"
+  show UnusedIdent = "UnusedIdent"
