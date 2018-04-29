@@ -32,7 +32,7 @@ import Data.Foreign.JSON (parseJSON)
 import Data.Foreign.Keys as K
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Traversable (sequence, traverse)
+import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 
 -- |
@@ -89,12 +89,6 @@ readLiteral' f x = do
   readValues :: Array Foreign -> F (Array a)
   readValues = traverse f
 
-  readPair :: Foreign -> String -> F (Tuple String a)
-  readPair obj key = Tuple key <$> (readProp key obj >>= f)
-
-  readPairs :: Foreign -> Array String -> F (Array (Tuple String a))
-  readPairs obj = sequence <<< (map <<< readPair) obj
-
   readLiteral'' :: String -> Foreign -> F (Literal a)
   readLiteral'' "IntLiteral" v = do
     value <- index v 1
@@ -117,11 +111,17 @@ readLiteral' f x = do
   readLiteral'' "ObjectLiteral" v = do
     obj <- index v 1
     keys <- K.keys obj
-    ObjectLiteral <$> readPairs obj keys
+    ObjectLiteral <$> readPairs f obj keys
   readLiteral'' label _ = fail $ ForeignError $ "Unknown literal: " <> label
 
 readLiteralJSON :: String -> F (Literal (Expr Unit))
 readLiteralJSON = parseJSON >=> readLiteral
+
+readPair :: forall a. (Foreign -> F a) -> Foreign -> String -> F (Tuple String a)
+readPair f obj key = Tuple key <$> (readProp key obj >>= f)
+
+readPairs :: forall a. (Foreign -> F a) -> Foreign -> Array String -> F (Array (Tuple String a))
+readPairs f obj = traverse (readPair f obj)
 
 -- |
 -- Data type for expressions and terms
@@ -131,6 +131,18 @@ data Expr a
   -- A literal value
   --
   = Literal a (Literal (Expr a))
+  -- |
+  -- A data constructor (type name, constructor name, field names)
+  --
+  | Constructor a ProperName ProperName (Array Ident)
+  -- |
+  -- A record property accessor
+  --
+  | Accessor a String (Expr a)
+  -- |
+  -- Partial record update
+  --
+  | ObjectUpdate a (Expr a) (Array (Tuple String (Expr a)))
   -- |
   -- Function introduction
   --
@@ -143,15 +155,28 @@ data Expr a
   -- Variable
   --
   | Var a (Qualified Ident)
+  -- |
+  -- A case expression
+  --
+  | Case a (Array (Expr a)) (Array (CaseAlternative a))
+  -- |
+  -- A let expression
+  --
+  | Let a (Array (Bind a)) (Expr a)
 
 derive instance eqExpr :: Eq a => Eq (Expr a)
 derive instance ordExpr :: Ord a => Ord (Expr a)
 
 instance showExpr :: Show a => Show (Expr a) where
   show (Literal x y) = "(Literal " <> show x <> " " <> show y <> ")"
+  show (Constructor w x y z) = "(Constructor " <> show w <> " " <> show x <> " " <> show y <> " " <> show z <> ")"
+  show (Accessor x y z) = "(Accessor " <> show x <> " " <> show y <> " " <> show z <> ")"
+  show (ObjectUpdate x y z) = "(ObjectUpdate " <> show x <> " " <> show y <> " " <> show z <> ")"
   show (Abs x y z) = "(Abs " <> show x <> " " <> show y <> " " <> show z <> ")"
   show (App x y z) = "(App " <> show x <> " " <> show y <> " " <> show z <> ")"
   show (Var x y) = "(Var " <> show x <> " " <> show y <> ")"
+  show (Case x y z) = "(Case " <> show x <> " " <> show y <> " " <> show z <> ")"
+  show (Let x y z) = "(Let " <> show x <> " " <> show y <> " " <> show z <> ")"
 
 readExpr :: Foreign -> F (Expr Unit)
 readExpr x = do
@@ -163,7 +188,21 @@ readExpr x = do
   readExpr' :: String -> Foreign -> F (Expr Unit)
   readExpr' "Literal" y = do
     value <- index y 1
-    Literal unit <$> readLiteral value
+    Literal unit <$> readLiteral' readExpr value
+  readExpr' "Constructor" y = do
+    type' <- index y 1
+    name <- index y 2
+    fields <- index y 3 >>= readArray
+    Constructor unit <$> readProperName type' <*> readProperName name <*> traverse readIdent fields
+  readExpr' "Accessor" y = do
+    ident <- index y 1
+    expr <- index y 2
+    Accessor unit <$> readString ident <*> readExpr expr
+  readExpr' "ObjectUpdate" y = do
+    record <- index y 1
+    obj <- index y 2
+    keys <- K.keys obj
+    ObjectUpdate unit <$> readExpr record <*> readPairs readExpr obj keys
   readExpr' "Abs" y = do
     ident <- index y 1
     expr <- index y 2
@@ -175,6 +214,14 @@ readExpr x = do
   readExpr' "Var" y = do
     value <- index y 1
     Var unit <$> readQualified Ident value
+  readExpr' "Case" y = do
+    cases <- index y 1 >>= readArray
+    alternatives <- index y 2 >>= readArray
+    Case unit <$> traverse readExpr cases <*> traverse readCaseAlternative alternatives
+  readExpr' "Let" y = do
+    bindings <- index y 1 >>= readArray
+    expr <- index y 2
+    Let unit <$> traverse readBind bindings <*> readExpr expr
   readExpr' label _ = fail $ ForeignError $ "Unknown expression: " <> label
 
 readExprJSON :: String -> F (Expr Unit)

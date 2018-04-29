@@ -191,9 +191,14 @@ testExpr = do
   log "Test Expr"
 
   testLiteralExpr
+  testConstructorExpr
+  testAccessorExpr
+  testObjectUpdateExpr
   testAbsExpr
   testAppExpr
   testVarExpr
+  testCaseExpr
+  testLetExpr
   testUnknownExpr
 
   where
@@ -216,6 +221,85 @@ testExpr = do
 
     expectSuccess description (readExprJSON json) \x ->
       assertEqual x (Literal unit (StringLiteral "Hello world!"))
+
+  -- |
+  -- Constructor
+  --
+  testConstructorExpr = do
+    let description = "Constructor from JSON results in success"
+
+    let json = """
+
+      [
+        "Constructor",
+        "Either",
+        "Left",
+        [
+          "x"
+        ]
+      ]
+    """
+
+    expectSuccess description (readExprJSON json) \x -> do
+      let type' = ProperName "Either"
+      let name = ProperName "Left"
+      let fields = [Ident "x"]
+      assertEqual x (Constructor unit type' name fields)
+
+  -- |
+  -- Accessor
+  --
+  testAccessorExpr = do
+    let description = "Accessor from JSON results in success"
+
+    let json = """
+      [
+        "Accessor",
+        "value",
+        [
+          "Var",
+          "x"
+        ]
+      ]
+    """
+
+    expectSuccess description (readExprJSON json) \x -> do
+      let string = "value"
+      let qualified = Qualified Nothing (Ident "x")
+      let var = Var unit qualified
+      assertEqual x (Accessor unit string var)
+
+
+  -- |
+  -- ObjectUpdate
+  --
+  testObjectUpdateExpr = do
+    let description = "ObjectUpdate from JSON results in success"
+
+    let json = """
+      [
+        "ObjectUpdate",
+        [
+          "Var",
+          "value"
+        ],
+        {
+          "x": [
+            "Literal",
+            [
+              "StringLiteral",
+              "y"
+            ]
+          ]
+        }
+      ]
+    """
+
+    expectSuccess description (readExprJSON json) \x -> do
+      let qualified = Qualified Nothing (Ident "value")
+      let record = Var unit qualified
+      let updates = [Tuple "x" (Literal unit (StringLiteral "y"))]
+      assertEqual x (ObjectUpdate unit record updates)
 
   -- |
   -- Abs
@@ -287,6 +371,89 @@ testExpr = do
       let moduleName = Just (ModuleName "Control.Monad.Eff.Console")
       let qualified = Qualified moduleName (Ident "log")
       assertEqual x (Var unit qualified)
+
+  -- |
+  -- Case
+  --
+  testCaseExpr = do
+    let description = "Case from JSON results in success"
+
+    let json = """
+      [
+        "Case",
+        [
+          [
+            "Var",
+            "x"
+          ]
+        ],
+        [
+          [
+            [
+              [
+                "ConstructorBinder",
+                "Data.Identity.Identity",
+                "Data.Identity.Identity",
+                [
+                  [
+                    "VarBinder",
+                    "a"
+                  ]
+                ]
+              ]
+            ],
+            [
+              "Var",
+              "a"
+            ]
+          ]
+        ]
+      ]
+    """
+
+    expectSuccess description (readExprJSON json) \x -> do
+      let var = Var unit (Qualified Nothing (Ident "x"))
+      let moduleName = Just (ModuleName "Data.Identity")
+      let type' = Qualified moduleName (ProperName "Identity")
+      let constructor = Qualified moduleName (ProperName "Identity")
+      let binder = VarBinder unit (Ident "a")
+      let binders = [ConstructorBinder unit type' constructor [binder]]
+      let result = Right (Var unit (Qualified Nothing (Ident "a")))
+      let alternative = CaseAlternative { binders, result }
+      assertEqual x (Case unit [var] [alternative])
+
+  -- |
+  -- Let
+  --
+  testLetExpr = do
+    let description = "Let from JSON results in success"
+
+    let json = """
+      [
+        "Let",
+        [
+          {
+            "x": [
+              "Literal",
+              [
+                "StringLiteral",
+                "y"
+              ]
+            ]
+          }
+        ],
+        [
+          "Var",
+          "x"
+        ]
+      ]
+    """
+
+    expectSuccess description (readExprJSON json) \x -> do
+      let expr = Literal unit (StringLiteral "y")
+      let binding = Bind [Tuple (Tuple unit (Ident "x")) expr]
+      let var = Var unit (Qualified Nothing (Ident "x"))
+      assertEqual x (Let unit [binding] var)
 
   -- |
   -- Unknown
