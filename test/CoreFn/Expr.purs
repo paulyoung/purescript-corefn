@@ -1,16 +1,19 @@
 module Test.CoreFn.Expr
-  ( testBindings
+  ( testBinders
+  , testBindings
+  , testCaseAlternatives
   , testExpr
   , testLiterals
   ) where
 
 import Prelude
+
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
-import CoreFn.Expr (Bind(..), Expr(..), Literal(..), readBindJSON, readExprJSON, readLiteralJSON)
+import CoreFn.Expr (Bind(..), Binder(..), CaseAlternative(..), Expr(..), Literal(..), readBindJSON, readBinderJSON, readCaseAlternativeJSON, readExprJSON, readLiteralJSON)
 import CoreFn.Ident (Ident(..))
-import CoreFn.Names (ModuleName(..), Qualified(..))
+import CoreFn.Names (ModuleName(..), ProperName(..), Qualified(..))
 import Data.Either (Either(..))
 import Data.Foreign (ForeignError(..))
 import Data.List.NonEmpty (singleton)
@@ -188,9 +191,14 @@ testExpr = do
   log "Test Expr"
 
   testLiteralExpr
+  testConstructorExpr
+  testAccessorExpr
+  testObjectUpdateExpr
   testAbsExpr
   testAppExpr
   testVarExpr
+  testCaseExpr
+  testLetExpr
   testUnknownExpr
 
   where
@@ -213,6 +221,85 @@ testExpr = do
 
     expectSuccess description (readExprJSON json) \x ->
       assertEqual x (Literal unit (StringLiteral "Hello world!"))
+
+  -- |
+  -- Constructor
+  --
+  testConstructorExpr = do
+    let description = "Constructor from JSON results in success"
+
+    let json = """
+
+      [
+        "Constructor",
+        "Either",
+        "Left",
+        [
+          "x"
+        ]
+      ]
+    """
+
+    expectSuccess description (readExprJSON json) \x -> do
+      let type' = ProperName "Either"
+      let name = ProperName "Left"
+      let fields = [Ident "x"]
+      assertEqual x (Constructor unit type' name fields)
+
+  -- |
+  -- Accessor
+  --
+  testAccessorExpr = do
+    let description = "Accessor from JSON results in success"
+
+    let json = """
+      [
+        "Accessor",
+        "value",
+        [
+          "Var",
+          "x"
+        ]
+      ]
+    """
+
+    expectSuccess description (readExprJSON json) \x -> do
+      let string = "value"
+      let qualified = Qualified Nothing (Ident "x")
+      let var = Var unit qualified
+      assertEqual x (Accessor unit string var)
+
+
+  -- |
+  -- ObjectUpdate
+  --
+  testObjectUpdateExpr = do
+    let description = "ObjectUpdate from JSON results in success"
+
+    let json = """
+      [
+        "ObjectUpdate",
+        [
+          "Var",
+          "value"
+        ],
+        {
+          "x": [
+            "Literal",
+            [
+              "StringLiteral",
+              "y"
+            ]
+          ]
+        }
+      ]
+    """
+
+    expectSuccess description (readExprJSON json) \x -> do
+      let qualified = Qualified Nothing (Ident "value")
+      let record = Var unit qualified
+      let updates = [Tuple "x" (Literal unit (StringLiteral "y"))]
+      assertEqual x (ObjectUpdate unit record updates)
 
   -- |
   -- Abs
@@ -284,6 +371,89 @@ testExpr = do
       let moduleName = Just (ModuleName "Control.Monad.Eff.Console")
       let qualified = Qualified moduleName (Ident "log")
       assertEqual x (Var unit qualified)
+
+  -- |
+  -- Case
+  --
+  testCaseExpr = do
+    let description = "Case from JSON results in success"
+
+    let json = """
+      [
+        "Case",
+        [
+          [
+            "Var",
+            "x"
+          ]
+        ],
+        [
+          [
+            [
+              [
+                "ConstructorBinder",
+                "Data.Identity.Identity",
+                "Data.Identity.Identity",
+                [
+                  [
+                    "VarBinder",
+                    "a"
+                  ]
+                ]
+              ]
+            ],
+            [
+              "Var",
+              "a"
+            ]
+          ]
+        ]
+      ]
+    """
+
+    expectSuccess description (readExprJSON json) \x -> do
+      let var = Var unit (Qualified Nothing (Ident "x"))
+      let moduleName = Just (ModuleName "Data.Identity")
+      let type' = Qualified moduleName (ProperName "Identity")
+      let constructor = Qualified moduleName (ProperName "Identity")
+      let binder = VarBinder unit (Ident "a")
+      let binders = [ConstructorBinder unit type' constructor [binder]]
+      let result = Right (Var unit (Qualified Nothing (Ident "a")))
+      let alternative = CaseAlternative { binders, result }
+      assertEqual x (Case unit [var] [alternative])
+
+  -- |
+  -- Let
+  --
+  testLetExpr = do
+    let description = "Let from JSON results in success"
+
+    let json = """
+      [
+        "Let",
+        [
+          {
+            "x": [
+              "Literal",
+              [
+                "StringLiteral",
+                "y"
+              ]
+            ]
+          }
+        ],
+        [
+          "Var",
+          "x"
+        ]
+      ]
+    """
+
+    expectSuccess description (readExprJSON json) \x -> do
+      let expr = Literal unit (StringLiteral "y")
+      let binding = Bind [Tuple (Tuple unit (Ident "x")) expr]
+      let var = Var unit (Qualified Nothing (Ident "x"))
+      assertEqual x (Let unit [binding] var)
 
   -- |
   -- Unknown
@@ -424,3 +594,161 @@ testBindings = do
       let gBinding = Tuple (Tuple unit gIdent) gAbs
 
       assertEqual x (Bind [fBinding, gBinding])
+
+testCaseAlternatives :: forall e. Eff (console :: CONSOLE, exception :: EXCEPTION | e) Unit
+testCaseAlternatives = do
+  log ""
+  log "Test CaseAlternative"
+
+  testCaseAlternative
+
+  where
+
+  -- |
+  -- CaseAlternative
+  --
+  testCaseAlternative = do
+    let description = "CaseAlternative from JSON result in success"
+
+    let json = """
+      [
+        [
+          [
+            "ConstructorBinder",
+            "Data.Identity.Identity",
+            "Data.Identity.Identity",
+            [
+              [
+                "VarBinder",
+                "a"
+              ]
+            ]
+          ]
+        ],
+        [
+          "Var",
+          "a"
+        ]
+      ]
+    """
+
+    expectSuccess description (readCaseAlternativeJSON json) \x -> do
+      let moduleName = Just (ModuleName "Data.Identity")
+      let type' = Qualified moduleName (ProperName "Identity")
+      let constructor = Qualified moduleName (ProperName "Identity")
+      let binder = VarBinder unit (Ident "a")
+      let binders = [ConstructorBinder unit type' constructor [binder]]
+      let result = Right (Var unit (Qualified Nothing (Ident "a")))
+
+      assertEqual x (CaseAlternative {binders, result})
+
+testBinders :: forall e. Eff (console :: CONSOLE, exception :: EXCEPTION | e) Unit
+testBinders = do
+  log ""
+  log "Test Binder"
+
+  testNullBinder
+  testLiteralBinder
+  testVarBinder
+  testConstructorBinder
+  testNamedBinder
+
+  where
+
+  -- |
+  -- NullBinder
+  --
+  testNullBinder = do
+    let description = "NullBinder from JSON result in success"
+
+    let json = """
+      "NullBinder"
+    """
+
+    expectSuccess description (readBinderJSON json) \x -> do
+
+      assertEqual x (NullBinder unit)
+
+  -- |
+  -- LiteralBinder
+  --
+  testLiteralBinder = do
+    let description = "LiteralBinder from JSON result in success"
+
+    let json = """
+      [
+        "LiteralBinder",
+        [
+          "BooleanLiteral",
+          true
+        ]
+      ]
+    """
+
+    expectSuccess description (readBinderJSON json) \x -> do
+      let literal = BooleanLiteral true
+
+      assertEqual x (LiteralBinder unit literal)
+
+  -- |
+  -- VarBinder
+  --
+  testVarBinder = do
+    let description = "VarBinder from JSON result in success"
+
+    let json = """
+      [
+        "VarBinder",
+        "x"
+      ]
+    """
+
+    expectSuccess description (readBinderJSON json) \x -> do
+      let ident = Ident "x"
+
+      assertEqual x (VarBinder unit ident)
+
+  -- |
+  -- ConstructorBinder
+  --
+  testConstructorBinder = do
+    let description = "ConstructorBinder from JSON result in success"
+
+    let json = """
+      [
+        "ConstructorBinder",
+        "Data.Either.Either",
+        "Data.Either.Left",
+        [
+          "NullBinder"
+        ]
+      ]
+    """
+
+    expectSuccess description (readBinderJSON json) \x -> do
+      let moduleName = Just (ModuleName "Data.Either")
+      let type' = Qualified moduleName (ProperName "Either")
+      let constructor = Qualified moduleName (ProperName "Left")
+      let binders = [NullBinder unit]
+
+      assertEqual x (ConstructorBinder unit type' constructor binders)
+
+  -- |
+  -- NamedBinder
+  --
+  testNamedBinder = do
+    let description = "NamedBinder from JSON result in success"
+
+    let json = """
+      [
+        "NamedBinder",
+        "x",
+        "NullBinder"
+      ]
+    """
+
+    expectSuccess description (readBinderJSON json) \x -> do
+      let ident = Ident "x"
+      let binder = NullBinder unit
+
+      assertEqual x (NamedBinder unit ident binder)
