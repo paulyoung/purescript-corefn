@@ -601,6 +601,7 @@ testCaseAlternatives = do
   log "Test CaseAlternative"
 
   testCaseAlternative
+  testCaseAlternativeWithGuards
 
   where
 
@@ -639,6 +640,61 @@ testCaseAlternatives = do
       let binder = VarBinder unit (Ident "a")
       let binders = [ConstructorBinder unit type' constructor [binder]]
       let result = Right (Var unit (Qualified Nothing (Ident "a")))
+
+      assertEqual x (CaseAlternative {binders, result})
+
+  -- |
+  -- CaseAlternativeWithGuards
+  --
+  testCaseAlternativeWithGuards = do
+    let description = "CaseAlternativeWithGuards from JSON result in success"
+
+    let json = """
+      [
+        [
+          [
+            "VarBinder",
+            "x"
+          ]
+        ],
+        [
+          [
+            [
+              "Literal",
+              [
+                "BooleanLiteral",
+                false
+              ]
+            ],
+            [
+              "Var",
+              "y"
+            ]
+          ],
+          [
+            [
+              "Literal",
+              [
+                "BooleanLiteral",
+                true
+              ]
+            ],
+            [
+              "Var",
+              "x"
+            ]
+          ]
+        ]
+      ]
+    """
+
+    expectSuccess description (readCaseAlternativeJSON json) \x -> do
+      let binders = [VarBinder unit (Ident "x")]
+      let falseGuard = Literal unit (BooleanLiteral false)
+      let trueGuard = Literal unit (BooleanLiteral true)
+      let guard1 = Tuple falseGuard (Var unit (Qualified Nothing (Ident "y")))
+      let guard2 = Tuple trueGuard (Var unit (Qualified Nothing (Ident "x")))
+      let result = Left [guard1, guard2]
 
       assertEqual x (CaseAlternative {binders, result})
 
