@@ -4,12 +4,15 @@
 module CoreFn.Expr
   ( Bind(..)
   , Binder(..)
+  , CaseAlternative(..)
   , Expr(..)
   , Literal(..)
   , readBind
   , readBindJSON
   , readBinder
   , readBinderJSON
+  , readCaseAlternative
+  , readCaseAlternativeJSON
   , readExpr
   , readExprJSON
   , readLiteral
@@ -206,6 +209,44 @@ readBind x = do
 
 readBindJSON :: String -> F (Bind Unit)
 readBindJSON = parseJSON >=> readBind
+
+newtype CaseAlternative a = CaseAlternative
+  { binders :: Array (Binder a)
+  , result :: Either (Array (Tuple (Expr a) (Expr a))) (Expr a)
+  }
+
+derive instance eqCaseAlternative :: Eq a => Eq (CaseAlternative a)
+derive instance ordCaseAlternative :: Ord a => Ord (CaseAlternative a)
+derive instance genericCaseAlternative :: Generic (CaseAlternative a) _
+
+instance showCaseAlternative :: Show a => Show (CaseAlternative a) where
+  show = genericShow
+
+readCaseAlternative :: Foreign -> F (CaseAlternative Unit)
+readCaseAlternative x = do
+  binders <- index x 0 >>= readArray
+  result <- index x 1
+  record <- {binders: _, result: _} <$> traverse readBinder binders <*> readResult result
+  pure (CaseAlternative record)
+
+  where
+
+  readResult :: Foreign -> F (Either (Array (Tuple (Expr Unit) (Expr Unit))) (Expr Unit))
+  readResult y = map Left (readGuardedExprs y) <|> map Right (readExpr y)
+
+  readGuardedExprs :: Foreign -> F (Array (Tuple (Expr Unit) (Expr Unit)))
+  readGuardedExprs y = do
+    guardedExprs <- readArray y
+    traverse readGuardedExpr guardedExprs
+
+  readGuardedExpr :: Foreign -> F (Tuple (Expr Unit) (Expr Unit))
+  readGuardedExpr y = do
+    guard <- index y 1
+    expr <- index y 2
+    Tuple <$> readExpr guard <*> readExpr expr
+
+readCaseAlternativeJSON :: String -> F (CaseAlternative Unit)
+readCaseAlternativeJSON = parseJSON >=> readCaseAlternative
 
 data Binder a
   = NullBinder a

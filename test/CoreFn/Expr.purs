@@ -1,6 +1,7 @@
 module Test.CoreFn.Expr
   ( testBinders
   , testBindings
+  , testCaseAlternatives
   , testExpr
   , testLiterals
   ) where
@@ -10,7 +11,7 @@ import Prelude
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (log, CONSOLE)
 import Control.Monad.Eff.Exception (EXCEPTION)
-import CoreFn.Expr (Bind(Bind), Binder(NamedBinder, NullBinder, ConstructorBinder, VarBinder, LiteralBinder), Expr(Abs, App, Var, Literal), Literal(BooleanLiteral, StringLiteral, ObjectLiteral, ArrayLiteral, CharLiteral, NumericLiteral), readBindJSON, readBinderJSON, readExprJSON, readLiteralJSON)
+import CoreFn.Expr (Bind(..), Binder(..), CaseAlternative(..), Expr(..), Literal(..), readBindJSON, readBinderJSON, readCaseAlternativeJSON, readExprJSON, readLiteralJSON)
 import CoreFn.Ident (Ident(..))
 import CoreFn.Names (ModuleName(..), ProperName(..), Qualified(..))
 import Data.Either (Either(..))
@@ -426,6 +427,53 @@ testBindings = do
       let gBinding = Tuple (Tuple unit gIdent) gAbs
 
       assertEqual x (Bind [fBinding, gBinding])
+
+testCaseAlternatives :: forall e. Eff (console :: CONSOLE, exception :: EXCEPTION | e) Unit
+testCaseAlternatives = do
+  log ""
+  log "Test CaseAlternative"
+
+  testCaseAlternative
+
+  where
+
+  -- |
+  -- CaseAlternative
+  --
+  testCaseAlternative = do
+    let description = "CaseAlternative from JSON result in success"
+
+    let json = """
+      [
+        [
+          [
+            "ConstructorBinder",
+            "Data.Identity.Identity",
+            "Data.Identity.Identity",
+            [
+              [
+                "VarBinder",
+                "a"
+              ]
+            ]
+          ]
+        ],
+        [
+          "Var",
+          "a"
+        ]
+      ]
+    """
+
+    expectSuccess description (readCaseAlternativeJSON json) \x -> do
+      let moduleName = Just (ModuleName "Data.Identity")
+      let type' = Qualified moduleName (ProperName "Identity")
+      let constructor = Qualified moduleName (ProperName "Identity")
+      let binder = VarBinder unit (Ident "a")
+      let binders = [ConstructorBinder unit type' constructor [binder]]
+      let result = Right (Var unit (Qualified Nothing (Ident "a")))
+
+      assertEqual x (CaseAlternative {binders, result})
 
 testBinders :: forall e. Eff (console :: CONSOLE, exception :: EXCEPTION | e) Unit
 testBinders = do
