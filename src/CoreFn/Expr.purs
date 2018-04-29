@@ -288,8 +288,8 @@ readCaseAlternative x = do
 
   readGuardedExpr :: Foreign -> F (Tuple (Expr Unit) (Expr Unit))
   readGuardedExpr y = do
-    guard <- index y 1
-    expr <- index y 2
+    guard <- index y 0
+    expr <- index y 1
     Tuple <$> readExpr guard <*> readExpr expr
 
 readCaseAlternativeJSON :: String -> F (CaseAlternative Unit)
