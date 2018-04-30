@@ -7,4 +7,5 @@ install:
   - yarn global add purescript pulp bower purescript-psa
   - bower install
 script:
+  - pulp build --include test -- --dump-corefn
   - pulp test
