@@ -38,6 +38,7 @@ instance showMeta :: Show Meta where
   show IsNewtype = "IsNewtype"
   show IsTypeClassConstructor = "IsTypeClassConstructor"
   show IsForeign = "IsForeign"
+  show IsWhere = "IsWhere"
 
 
 -- |
