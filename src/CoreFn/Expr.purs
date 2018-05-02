@@ -25,6 +25,7 @@ import Control.Alt ((<|>))
 import CoreFn.Ident (Ident(..), readIdent)
 import CoreFn.Names (ProperName(..), Qualified, readProperName, readQualified)
 import CoreFn.Util (objectProps)
+import Data.Bifunctor (bimap, lmap)
 import Data.Either (Either(..), either)
 import Data.Foreign (F, Foreign, ForeignError(..), fail, readArray, readBoolean, readChar, readInt, readNumber, readString)
 import Data.Foreign.Index (errorAt, index, readProp)
@@ -67,6 +68,7 @@ data Literal a
 
 derive instance eqLiteral :: Eq a => Eq (Literal a)
 derive instance ordLiteral :: Ord a => Ord (Literal a)
+derive instance functorLiteral :: Functor Literal
 
 instance showLiteral :: Show a => Show (Literal a) where
   show (NumericLiteral e) = "(NumericLiteral " <> either show show e <> ")"
@@ -166,6 +168,7 @@ data Expr a
 
 derive instance eqExpr :: Eq a => Eq (Expr a)
 derive instance ordExpr :: Ord a => Ord (Expr a)
+derive instance functorExpr :: Functor Expr
 
 instance showExpr :: Show a => Show (Expr a) where
   show (Literal x y) = "(Literal " <> show x <> " " <> show y <> ")"
@@ -238,6 +241,9 @@ derive instance ordBind :: Ord a => Ord (Bind a)
 instance showBind :: Show a => Show (Bind a) where
   show (Bind x) = "(Bind " <> show x <> ")"
 
+instance functorBind :: Functor Bind where
+  map f (Bind x) = Bind (map (bimap (lmap f) (map f)) x)
+
 readBind :: Foreign -> F (Bind Unit)
 readBind x = do
   pairs <- objectProps x
@@ -268,6 +274,12 @@ derive instance genericCaseAlternative :: Generic (CaseAlternative a) _
 
 instance showCaseAlternative :: Show a => Show (CaseAlternative a) where
   show = genericShow
+
+instance functorCaseAlternative :: Functor CaseAlternative where
+  map f (CaseAlternative x) = CaseAlternative {binders, result}
+    where
+    binders = map (map f) x.binders
+    result = bimap (map (bimap (map f) (map f))) (map f) x.result
 
 readCaseAlternative :: Foreign -> F (CaseAlternative Unit)
 readCaseAlternative x = do
@@ -305,6 +317,7 @@ data Binder a
 derive instance eqBinder :: Eq a => Eq (Binder a)
 derive instance ordBinder :: Ord a => Ord (Binder a)
 derive instance genericBinder :: Generic (Binder a) _
+derive instance functorBinder :: Functor Binder
 
 instance showBinder :: Show a => Show (Binder a) where
   show x = genericShow x
