@@ -48,6 +48,7 @@ metaFromJSON = object $ \json -> do
     "IsNewtype" -> pure IsNewtype
     "IsTypeClassConstructor" -> pure IsTypeClassConstructor
     "IsForeign" -> pure IsForeign
+    "IsWhere" -> pure IsWhere
     _ -> fail $ ForeignError $ "Unknown Meta type :" <> type_
   where
   isConstructorFromJSON :: Foreign -> F Meta
