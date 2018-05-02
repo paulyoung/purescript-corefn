@@ -24,6 +24,10 @@ data Meta
   -- The contained reference is for a foreign member
   --
   | IsForeign
+  -- |
+  -- The contained value is a where clause
+  --
+  | IsWhere
 
 derive instance eqMeta :: Eq Meta
 derive instance ordMeta :: Ord Meta
