@@ -29,6 +29,7 @@ data Module a = Module
 
 derive instance eqModule :: Eq a => Eq (Module a)
 derive instance ordModule :: Ord a => Ord (Module a)
+derive instance functorModule :: Functor Module
 
 instance showModule :: Show a => Show (Module a) where
   show (Module { builtWith
