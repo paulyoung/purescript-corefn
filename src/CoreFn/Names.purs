@@ -33,7 +33,7 @@ derive instance newtypeOpName :: Newtype OpName _
 derive instance ordOpName :: Ord OpName
 
 instance showOpName :: Show OpName where
-  show x = "(OpName " <> unwrap x <> ")"
+  show x = "(OpName " <> show (unwrap x) <> ")"
 
 
 -- |
@@ -47,7 +47,7 @@ derive instance newtypeProperName :: Newtype ProperName _
 derive instance ordProperName :: Ord ProperName
 
 instance showProperName :: Show ProperName where
-  show x = "(ProperName " <> unwrap x <> ")"
+  show x = "(ProperName " <> show (unwrap x) <> ")"
 
 
 -- |
