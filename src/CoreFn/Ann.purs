@@ -28,7 +28,7 @@ instance showAnn :: Show Ann where
       "{ sourceSpan: " <> show ann.sourceSpan <>
       ", comments: " <> show ann.comments <>
       ", type: " <> show ann.type <>
-      ", meta: " <> show ann.meta <>
+      ", meta: " <> show ann.meta <> " " <>
       "}" <>
     ")"
 
@@ -80,7 +80,7 @@ instance showSourcePos :: Show SourcePos where
  show (SourcePos { sourcePosLine, sourcePosColumn }) =
    "(SourcePos " <>
      "{ sourcePosLine: " <> show sourcePosLine <>
-     ", sourcePosColumn: " <> show sourcePosColumn <>
+     ", sourcePosColumn: " <> show sourcePosColumn <> " " <>
      "}" <>
    ")"
 
@@ -102,7 +102,7 @@ instance showSourceSpan :: Show SourceSpan where
     "(SourceSpan " <>
       "{ spanName: " <> show spanName <>
       ", spanStart: " <> show spanStart <>
-      ", spanEnd: " <> show spanEnd <>
+      ", spanEnd: " <> show spanEnd <> " " <>
       "}" <>
     ")"
 
@@ -254,7 +254,7 @@ instance showConstraint :: Show Constraint where
     "(Constraint " <>
       "{ constraintClass: " <> show constraintClass <>
       ", constraintArgs: " <> show constraintArgs <>
-      ", constraintData: " <> show constraintData <>
+      ", constraintData: " <> show constraintData <> " " <>
       "}" <>
     ")"
 

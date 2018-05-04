@@ -158,6 +158,6 @@ instance showCaseAlternative :: Show a => Show (CaseAlternative a) where
   show (CaseAlternative { caseAlternativeBinders, caseAlternativeResult }) =
     "(CaseAlternative " <>
       "{ caseAlternativeBinders: " <> show caseAlternativeBinders <>
-      ", caseAlternativeResult: " <> show caseAlternativeResult <>
+      ", caseAlternativeResult: " <> show caseAlternativeResult <> " " <>
       "}" <>
     ")"
