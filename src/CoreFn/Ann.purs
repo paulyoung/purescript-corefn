@@ -102,7 +102,7 @@ instance showSourceSpan :: Show SourceSpan where
     "(SourceSpan " <>
       "{ spanName: " <> show spanName <>
       ", spanStart: " <> show spanStart <>
-      ", spanEnd: " <> show spanEnd <> " "
+      ", spanEnd: " <> show spanEnd <> " " <>
       "}" <>
     ")"
 
