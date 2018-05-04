@@ -39,7 +39,7 @@ instance showModule :: Show a => Show (Module a) where
       ", moduleImports: " <> show m.moduleImports <>
       ", moduleExports: " <> show m.moduleExports <>
       ", moduleForeign: " <> show m.moduleForeign <>
-      ", moduleDecls: " <> show m.moduleDecls <>
+      ", moduleDecls: " <> show m.moduleDecls <> " " <>
       "}" <>
     ")"
 
@@ -57,7 +57,7 @@ instance showModuleImport :: Show ModuleImport where
   show (ModuleImport moduleImport) =
     "(ModuleImport " <>
       "{ ann: " <> show moduleImport.ann <>
-      ", moduleName: " <> show moduleImport.moduleName <>
+      ", moduleName: " <> show moduleImport.moduleName <> " " <>
       "}" <>
     ")"
 
