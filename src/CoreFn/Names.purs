@@ -8,7 +8,7 @@ module CoreFn.Names
 import Prelude
 
 import Data.Maybe (Maybe)
-import Data.Newtype (class Newtype)
+import Data.Newtype (class Newtype, unwrap)
 
 -- |
 -- Module names
@@ -18,7 +18,9 @@ newtype ModuleName = ModuleName (Array ProperName)
 derive instance eqModuleName :: Eq ModuleName
 derive instance newtypeModuleName :: Newtype ModuleName _
 derive instance ordModuleName :: Ord ModuleName
-derive newtype instance showModuleName :: Show ModuleName
+
+instance showModuleName :: Show ModuleName where
+  show x = "(ModuleName " <> show (unwrap x) <> ")"
 
 
 -- |
@@ -29,7 +31,9 @@ newtype OpName = OpName String
 derive instance eqOpName :: Eq OpName
 derive instance newtypeOpName :: Newtype OpName _
 derive instance ordOpName :: Ord OpName
-derive newtype instance showOpName :: Show OpName
+
+instance showOpName :: Show OpName where
+  show x = "(OpName " <> unwrap x <> ")"
 
 
 -- |
@@ -41,7 +45,9 @@ newtype ProperName = ProperName String
 derive instance eqProperName :: Eq ProperName
 derive instance newtypeProperName :: Newtype ProperName _
 derive instance ordProperName :: Ord ProperName
-derive newtype instance showProperName :: Show ProperName
+
+instance showProperName :: Show ProperName where
+  show x = "(ProperName " <> unwrap x <> ")"
 
 
 -- |
