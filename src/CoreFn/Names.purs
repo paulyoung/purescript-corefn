@@ -59,4 +59,4 @@ derive instance eqQualified :: Eq a => Eq (Qualified a)
 derive instance ordQualified :: Ord a => Ord (Qualified a)
 
 instance showQualified :: Show a => Show (Qualified a) where
-  show (Qualified m a) = "(Qualified " <> show m <> show a <> ")"
+  show (Qualified m a) = "(Qualified " <> show m <> " " <> show a <> ")"
