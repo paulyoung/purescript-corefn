@@ -14,7 +14,7 @@ import Data.Traversable (traverse_)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 
-spec :: forall r. Spec r Unit
+spec :: Spec Unit
 spec = describe "FromJSON" do
   let
     mn = ModuleName [ ProperName "Example", ProperName "Main" ]
