@@ -3,7 +3,6 @@ dist: trusty
 sudo: required
 node_js: stable
 install:
-  - npm install -g purescript@^0.12.0 pulp@^12.3.0 bower purescript-psa@^0.6.0
-  - bower install
+  - npm install -g spago@0.15.2 purescript@0.13.6
 script:
-  - pulp test
+  - spago test
